@@ -1,0 +1,158 @@
+{
+  "name": "speckit",
+  "displayName": "SpecKit",
+  "description": "View and manage SpecKit specifications in VS Code with Cascade AI integration",
+  "version": "0.1.0",
+  "publisher": "speckit",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/speckit/speckit-extension"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/specs/*/spec.md"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "speckit-explorer",
+          "title": "SpecKit",
+          "icon": "media/speckit-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "speckit-explorer": [
+        {
+          "id": "speckit.specsView",
+          "name": "Specs",
+          "icon": "media/speckit-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "speckit.refreshSpecs",
+        "title": "Refresh Specs",
+        "icon": "$(refresh)",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.openSpec",
+        "title": "Open Spec",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.openWithTests",
+        "title": "Open with Tests (Split View)",
+        "icon": "$(split-horizontal)",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.createSpec",
+        "title": "Create New Spec",
+        "icon": "$(add)",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.goToScenario",
+        "title": "Go to Acceptance Scenario",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.goToTest",
+        "title": "Go to Integration Test",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.copyForTest",
+        "title": "Copy for Update Integration Test",
+        "icon": "$(clippy)",
+        "category": "SpecKit"
+      },
+      {
+        "command": "speckit.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)",
+        "category": "SpecKit"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "speckit.refreshSpecs",
+          "when": "view == speckit.specsView",
+          "group": "navigation"
+        },
+        {
+          "command": "speckit.createSpec",
+          "when": "view == speckit.specsView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "speckit.copyForTest",
+          "when": "view == speckit.specsView && viewItem != feature",
+          "group": "inline@1"
+        },
+        {
+          "command": "speckit.expandAll",
+          "when": "view == speckit.specsView && (viewItem == feature || viewItem == userStory)",
+          "group": "inline@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SpecKit",
+      "properties": {
+        "speckit.specsDirectory": {
+          "type": "string",
+          "default": "specs",
+          "description": "Directory containing spec files"
+        },
+        "speckit.testsDirectory": {
+          "type": "string",
+          "default": "tests/e2e",
+          "description": "Directory containing integration tests"
+        },
+        "speckit.autoOpenSplitView": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open tests in split view when clicking user story with linked tests"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "compile:test": "tsc -p tsconfig.test.json",
+    "watch": "pnpm compile --watch",
+    "package": "vsce package",
+    "pretest": "pnpm compile && pnpm compile:test",
+    "test": "node ./dist/test/test/runTest.js",
+    "test:unit": "pnpm compile:test && mocha --ui tdd 'dist/test/test/**/*.test.js'",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.19.0",
+    "glob": "^13.0.0",
+    "mocha": "^11.7.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  }
+}
