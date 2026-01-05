@@ -262,7 +262,7 @@ export function activate(context: vscode.ExtensionContext) {
       // Extract feature name for context
       const featureName = item.filePath.split('/specs/')[1]?.split('/')[0]?.replace(/^\d+-/, '') || 'feature';
       const specDir = path.dirname(item.filePath);
-      const maturityFilePath = path.join(specDir, 'maturity.md');
+      const maturityFilePath = path.join(specDir, 'maturity.json');
       const today = new Date().toISOString().split('T')[0];
       
       if (item.type === 'feature') {
@@ -365,9 +365,7 @@ The SpecKit extension links tests to acceptance scenarios by matching filenames 
 - Example patterns: \`us${story.number}-${featureName}.spec.ts\`, \`us${story.number}_${featureName}_test.go\`
 ` : '';
 
-        const maturityExampleSection = story ? `## US${story.number}
-- **Overall**: [calculated from scenarios]
-- **${scenario.id}**: [none|partial|complete]` : '';
+        const storyNumber = story?.number || 1;
 
         context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
 
@@ -419,7 +417,7 @@ After implementing the test, **run it** and record the pass/fail status:
 
 1. Run the test to verify it passes
 2. Add a \`@passed\` or \`@failed\` comment **directly before the test function**
-3. Update maturity.md with the maturity level
+3. Update maturity.json with the maturity level
 
 ### Step 5: Mark Test Pass Status in Test File
 Add a comment before the test function to record pass/fail status:
@@ -439,21 +437,36 @@ test('${scenario.id}: ...', async () => {
 });
 \`\`\`
 
-### Step 6: Update maturity.md
+### Step 6: Update maturity.json
 Update \`${maturityFilePath}\` with the maturity level (test pass status is tracked in test file comments):
 
-\`\`\`markdown
----
-lastUpdated: ${today}
----
-# Test Maturity Levels
-
-${maturityExampleSection}
+\`\`\`json
+{
+  "lastUpdated": "${today}",
+  "userStories": {
+    "US${storyNumber}": {
+      "overall": "[calculated from scenarios]",
+      "scenarios": {
+        "${scenario.id}": {
+          "level": "[none|partial|complete]",
+          "tests": [
+            {
+              "filePath": "${testDirectory}/us${storyNumber}-${featureName}.spec.ts",
+              "testName": "${scenario.id}: Given ${scenario.given.substring(0, 30)}...",
+              "status": "pass",
+              "lastRun": "${today}"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
 \`\`\`
 
 **Note**: The SpecKit extension will display:
 - Pass/fail icons (✓/✗) for tests based on \`@passed\`/\`@failed\` comments in test files
-- Maturity icons for scenarios based on maturity.md
+- Maturity icons for scenarios based on maturity.json
 `;
       }
 
@@ -604,8 +617,8 @@ ${maturityExampleSection}
   specWatcher.onDidDelete(() => treeProvider.refresh());
   context.subscriptions.push(specWatcher);
 
-  // Watch maturity.md files for changes to update tree view icons
-  const maturityWatcher = vscode.workspace.createFileSystemWatcher('**/specs/**/maturity.md');
+  // Watch maturity.json files for changes to update tree view icons
+  const maturityWatcher = vscode.workspace.createFileSystemWatcher('**/specs/**/maturity.json');
   maturityWatcher.onDidChange(() => {
     treeProvider.getMaturityManager().clearCache();
     treeProvider.refresh();

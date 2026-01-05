@@ -4,14 +4,36 @@ import * as path from 'path';
 export type MaturityLevel = 'none' | 'partial' | 'complete';
 export type TestStatus = 'pass' | 'fail' | 'unknown';
 
-export interface TestPassStatus {
-  testId: string;  // Format: filename:line (e.g., "us1-feature.spec.ts:15")
-  status: TestStatus;
+// JSON-serializable test entry
+export interface TestEntry {
+  filePath: string;      // Relative path to test file
+  testName: string;      // Full test name for stable identification
+  status: TestStatus;    // pass, fail, or unknown
+  lastRun?: string;      // ISO date of last run
 }
 
+// JSON-serializable scenario data
+export interface ScenarioDataJson {
+  level: MaturityLevel;
+  tests: TestEntry[];
+}
+
+// JSON-serializable user story data
+export interface UserStoryDataJson {
+  overall: MaturityLevel;
+  scenarios: Record<string, ScenarioDataJson>;
+}
+
+// JSON-serializable maturity data (for file storage)
+export interface MaturityDataJson {
+  lastUpdated: string;
+  userStories: Record<string, UserStoryDataJson>;
+}
+
+// Internal data structures using Maps for efficient lookup
 export interface ScenarioData {
   level: MaturityLevel;
-  tests: Map<string, TestStatus>;  // testId -> status
+  tests: TestEntry[];
 }
 
 export interface MaturityData {
@@ -46,6 +68,12 @@ export class MaturityManager {
   private cache: Map<string, MaturityData> = new Map();
 
   getMaturityFilePath(specFilePath: string): string {
+    const dir = path.dirname(specFilePath);
+    return path.join(dir, 'maturity.json');
+  }
+
+  // Also check for legacy maturity.md file
+  getLegacyMaturityFilePath(specFilePath: string): string {
     const dir = path.dirname(specFilePath);
     return path.join(dir, 'maturity.md');
   }
@@ -84,33 +112,23 @@ export class MaturityManager {
     return scenarioData?.level || 'none';
   }
 
-  getTestStatus(specFilePath: string, userStoryNumber: number, scenarioId: string, testId: string): TestStatus {
+  getTestsForScenario(specFilePath: string, userStoryNumber: number, scenarioId: string): TestEntry[] {
     const data = this.getMaturityData(specFilePath);
     const storyKey = `US${userStoryNumber}`;
     const story = data.userStories.get(storyKey);
     
     if (!story) {
-      return 'unknown';
+      return [];
     }
     
     const scenarioData = story.scenarios.get(scenarioId);
-    if (!scenarioData) {
-      return 'unknown';
-    }
-    
-    return scenarioData.tests.get(testId) || 'unknown';
+    return scenarioData?.tests || [];
   }
 
-  // Generate a test ID from file path and test name (minimal unique identifier)
-  // Format: "filename#testname" or just "testname" if unique enough
-  generateTestId(testFilePath: string, testName?: string): string {
-    const fileName = path.basename(testFilePath);
-    if (testName) {
-      // Use a minimal unique identifier: filename#testname
-      // This is more stable than line numbers which change frequently
-      return `${fileName}#${testName}`;
-    }
-    return fileName;
+  getTestStatus(specFilePath: string, userStoryNumber: number, scenarioId: string, testName: string): TestStatus {
+    const tests = this.getTestsForScenario(specFilePath, userStoryNumber, scenarioId);
+    const test = tests.find(t => t.testName === testName);
+    return test?.status || 'unknown';
   }
 
   getUserStoryMaturity(specFilePath: string, userStoryNumber: number): MaturityLevel {
@@ -159,7 +177,7 @@ export class MaturityManager {
     const existingScenario = story.scenarios.get(scenarioId);
     story.scenarios.set(scenarioId, {
       level,
-      tests: existingScenario?.tests || new Map()
+      tests: existingScenario?.tests || []
     });
     
     // Update overall based on lowest scenario level
@@ -168,7 +186,7 @@ export class MaturityManager {
     this.writeMaturityFile(specFilePath, data);
   }
 
-  setTestStatus(specFilePath: string, userStoryNumber: number, scenarioId: string, testId: string, status: TestStatus): void {
+  addTest(specFilePath: string, userStoryNumber: number, scenarioId: string, test: TestEntry): void {
     const data = this.getMaturityData(specFilePath);
     const storyKey = `US${userStoryNumber}`;
     
@@ -183,14 +201,34 @@ export class MaturityManager {
     if (!story.scenarios.has(scenarioId)) {
       story.scenarios.set(scenarioId, {
         level: 'none',
-        tests: new Map()
+        tests: []
       });
     }
     
     const scenarioData = story.scenarios.get(scenarioId)!;
-    scenarioData.tests.set(testId, status);
+    
+    // Check if test already exists (by testName)
+    const existingIndex = scenarioData.tests.findIndex(t => t.testName === test.testName);
+    if (existingIndex >= 0) {
+      // Update existing test
+      scenarioData.tests[existingIndex] = test;
+    } else {
+      // Add new test
+      scenarioData.tests.push(test);
+    }
     
     this.writeMaturityFile(specFilePath, data);
+  }
+
+  setTestStatus(specFilePath: string, userStoryNumber: number, scenarioId: string, testName: string, status: TestStatus): void {
+    const tests = this.getTestsForScenario(specFilePath, userStoryNumber, scenarioId);
+    const test = tests.find(t => t.testName === testName);
+    
+    if (test) {
+      test.status = status;
+      test.lastRun = new Date().toISOString().split('T')[0];
+      this.writeMaturityFile(specFilePath, this.getMaturityData(specFilePath));
+    }
   }
 
   private calculateOverallLevel(scenarios: Map<string, ScenarioData>): MaturityLevel {
@@ -208,6 +246,93 @@ export class MaturityManager {
   }
 
   private parseMaturityFile(filePath: string): MaturityData {
+    const data: MaturityData = {
+      userStories: new Map()
+    };
+
+    // Try JSON file first
+    if (fs.existsSync(filePath)) {
+      try {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const json: MaturityDataJson = JSON.parse(content);
+        return this.jsonToMaturityData(json);
+      } catch {
+        // Fall through to try legacy format
+      }
+    }
+
+    // Try legacy maturity.md file
+    const legacyPath = this.getLegacyMaturityFilePath(filePath.replace('maturity.json', 'spec.md'));
+    if (fs.existsSync(legacyPath)) {
+      return this.parseLegacyMaturityFile(legacyPath);
+    }
+
+    return data;
+  }
+
+  private jsonToMaturityData(json: MaturityDataJson): MaturityData {
+    const data: MaturityData = {
+      lastUpdated: json.lastUpdated,
+      userStories: new Map()
+    };
+
+    for (const [storyKey, storyData] of Object.entries(json.userStories)) {
+      const scenarios = new Map<string, ScenarioData>();
+      
+      for (const [scenarioId, scenarioData] of Object.entries(storyData.scenarios)) {
+        scenarios.set(scenarioId, {
+          level: scenarioData.level,
+          tests: scenarioData.tests || []
+        });
+      }
+      
+      data.userStories.set(storyKey, {
+        overall: storyData.overall,
+        scenarios
+      });
+    }
+
+    return data;
+  }
+
+  private maturityDataToJson(data: MaturityData): MaturityDataJson {
+    const json: MaturityDataJson = {
+      lastUpdated: new Date().toISOString(),
+      userStories: {}
+    };
+
+    // Sort user stories by number
+    const sortedStories = Array.from(data.userStories.entries()).sort((a, b) => {
+      const numA = parseInt(a[0].replace('US', ''));
+      const numB = parseInt(b[0].replace('US', ''));
+      return numA - numB;
+    });
+
+    for (const [storyKey, story] of sortedStories) {
+      const scenarios: Record<string, ScenarioDataJson> = {};
+      
+      // Sort scenarios by ID
+      const sortedScenarios = Array.from(story.scenarios.entries()).sort((a, b) => {
+        return a[0].localeCompare(b[0]);
+      });
+      
+      for (const [scenarioId, scenarioData] of sortedScenarios) {
+        scenarios[scenarioId] = {
+          level: scenarioData.level,
+          tests: scenarioData.tests
+        };
+      }
+      
+      json.userStories[storyKey] = {
+        overall: story.overall,
+        scenarios
+      };
+    }
+
+    return json;
+  }
+
+  private parseLegacyMaturityFile(filePath: string): MaturityData {
     const data: MaturityData = {
       userStories: new Map()
     };
@@ -242,41 +367,18 @@ export class MaturityManager {
           continue;
         }
         
-        // Parse maturity entry: - **US1-AS1**: complete or - **US1-AS1**: complete | tests: [file:3: ✓]
+        // Parse maturity entry: - **US1-AS1**: complete
         // Or simple format: - **Overall**: partial
-        const entryMatch = line.match(/^-\s+\*\*([^*]+)\*\*:\s*(\w+)(?:\s*\|\s*tests:\s*\[([^\]]*)\])?/);
+        const entryMatch = line.match(/^-\s+\*\*([^*]+)\*\*:\s*(\w+)/);
         if (entryMatch && currentStory) {
-          const [, key, value, testsStr] = entryMatch;
+          const [, key, value] = entryMatch;
           const level = this.parseLevel(value);
           const story = data.userStories.get(currentStory)!;
           
           if (key.toLowerCase() === 'overall') {
             story.overall = level;
           } else {
-            // Parse test statuses if present
-            const tests = new Map<string, TestStatus>();
-            if (testsStr) {
-              // Parse format: "file#testname: ✓, file#testname2: ✗"
-              // Also supports legacy format: "file:3: ✓"
-              const testParts = testsStr.split(',').map(s => s.trim());
-              for (const part of testParts) {
-                // New format: filename#testname: status (status is at the very end after last colon)
-                // The test name can contain colons, so we match from the end
-                const newFormatMatch = part.match(/^(.+#.+):\s*([✓✗?]|pass|fail|unknown)$/);
-                if (newFormatMatch) {
-                  const [, testId, statusStr] = newFormatMatch;
-                  tests.set(testId, this.parseTestStatus(statusStr));
-                  continue;
-                }
-                // Legacy format: filename:line: status
-                const legacyMatch = part.match(/^([^:]+:\d+):\s*([✓✗?]|pass|fail|unknown)$/);
-                if (legacyMatch) {
-                  const [, testId, statusStr] = legacyMatch;
-                  tests.set(testId, this.parseTestStatus(statusStr));
-                }
-              }
-            }
-            story.scenarios.set(key, { level, tests });
+            story.scenarios.set(key, { level, tests: [] });
           }
         }
       }
@@ -295,66 +397,77 @@ export class MaturityManager {
     return 'none';
   }
 
-  private parseTestStatus(value: string): TestStatus {
-    const normalized = value.trim();
-    if (normalized === '✓' || normalized === 'pass') {
-      return 'pass';
-    }
-    if (normalized === '✗' || normalized === 'fail') {
-      return 'fail';
-    }
-    return 'unknown';
-  }
-
   private writeMaturityFile(specFilePath: string, data: MaturityData): void {
     const maturityPath = this.getMaturityFilePath(specFilePath);
+    const json = this.maturityDataToJson(data);
     
-    let content = `---
-lastUpdated: ${new Date().toISOString()}
----
-# Test Maturity Levels
-
-`;
-
-    // Sort user stories by number
-    const sortedStories = Array.from(data.userStories.entries()).sort((a, b) => {
-      const numA = parseInt(a[0].replace('US', ''));
-      const numB = parseInt(b[0].replace('US', ''));
-      return numA - numB;
-    });
-
-    for (const [storyKey, story] of sortedStories) {
-      content += `## ${storyKey}\n`;
-      content += `- **Overall**: ${story.overall}\n`;
-      
-      // Sort scenarios by ID
-      const sortedScenarios = Array.from(story.scenarios.entries()).sort((a, b) => {
-        return a[0].localeCompare(b[0]);
-      });
-      
-      for (const [scenarioId, scenarioData] of sortedScenarios) {
-        // Format: - **US1-AS1**: complete | tests: [file:3: ✓, file:7: ✗]
-        let line = `- **${scenarioId}**: ${scenarioData.level}`;
-        
-        if (scenarioData.tests.size > 0) {
-          const testEntries = Array.from(scenarioData.tests.entries())
-            .map(([testId, status]) => {
-              const statusIcon = status === 'pass' ? '✓' : status === 'fail' ? '✗' : '?';
-              return `${testId}: ${statusIcon}`;
-            })
-            .join(', ');
-          line += ` | tests: [${testEntries}]`;
-        }
-        
-        content += line + '\n';
-      }
-      
-      content += '\n';
-    }
-
-    fs.writeFileSync(maturityPath, content, 'utf-8');
+    fs.writeFileSync(maturityPath, JSON.stringify(json, null, 2), 'utf-8');
     
     // Update cache
     this.cache.set(maturityPath, data);
+  }
+
+  // Scan test files and generate/update maturity.json
+  async scanAndUpdateMaturity(
+    specFilePath: string,
+    workspaceRoot: string,
+    testsDir: string,
+    testLinker: { findTestsForStory: (root: string, dir: string, feature: string, story: number) => Promise<any[]> }
+  ): Promise<void> {
+    const data = this.getMaturityData(specFilePath);
+    
+    // Get feature name from spec path
+    const featureName = path.dirname(specFilePath).split('/specs/')[1]?.split('/')[0]?.replace(/^\d+-/, '') || 'feature';
+    
+    // Scan each user story
+    for (const [storyKey, story] of data.userStories) {
+      const storyNumber = parseInt(storyKey.replace('US', ''));
+      const tests = await testLinker.findTestsForStory(workspaceRoot, testsDir, featureName, storyNumber);
+      
+      // Group tests by scenario
+      for (const test of tests) {
+        if (!test.testName) continue;
+        
+        // Extract scenario ID from test name (e.g., "US1-AS1: Given...")
+        const scenarioMatch = test.testName.match(/US\d+-AS\d+/i);
+        if (!scenarioMatch) continue;
+        
+        const scenarioId = scenarioMatch[0].toUpperCase();
+        
+        // Ensure scenario exists
+        if (!story.scenarios.has(scenarioId)) {
+          story.scenarios.set(scenarioId, { level: 'none', tests: [] });
+        }
+        
+        const scenarioData = story.scenarios.get(scenarioId)!;
+        
+        // Add or update test entry
+        const testEntry: TestEntry = {
+          filePath: path.relative(workspaceRoot, test.filePath),
+          testName: test.testName,
+          status: test.passStatus || 'unknown',
+          lastRun: test.passDate
+        };
+        
+        const existingIndex = scenarioData.tests.findIndex(t => t.testName === test.testName);
+        if (existingIndex >= 0) {
+          scenarioData.tests[existingIndex] = testEntry;
+        } else {
+          scenarioData.tests.push(testEntry);
+        }
+        
+        // Update maturity level based on tests
+        if (scenarioData.tests.length > 0) {
+          const allPassing = scenarioData.tests.every(t => t.status === 'pass');
+          const anyTest = scenarioData.tests.length > 0;
+          scenarioData.level = allPassing ? 'complete' : anyTest ? 'partial' : 'none';
+        }
+      }
+      
+      // Recalculate overall
+      story.overall = this.calculateOverallLevel(story.scenarios);
+    }
+    
+    this.writeMaturityFile(specFilePath, data);
   }
 }

@@ -1,0 +1,581 @@
+{
+  "lastUpdated": "2026-01-05T18:07:00Z",
+  "userStories": {
+    "US1": {
+      "overall": "complete",
+      "scenarios": {
+        "US1-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS1: Given plugin installed, When opening Windsurf with specs directory, Then SpecKit icon appears in activity bar",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US1-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS2: Given spec sidebar is open, When viewing it, Then tree view shows feature specs at root level",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US1-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS3: Given a feature spec in tree, When expanding it, Then user stories appear with priority indicators",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US1-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS4: Given a user story in tree, When expanding it, Then acceptance scenarios appear showing Given+When text",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US1-AS5": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS5: Given an acceptance scenario in tree, When expanding it, Then linked integration tests appear (if any)",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US1-AS6": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS6: Given a user story in tree, When clicking it, Then spec.md opens at that user story line",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    },
+    "US2": {
+      "overall": "complete",
+      "scenarios": {
+        "US2-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS1: Given a user story with linked tests, When clicking it, Then spec opens left and test opens right (split view)",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS2: Given split view is open, When clicking acceptance scenario, Then both editors scroll to corresponding locations",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS3: Given a user story without linked tests, When clicking it, Then only spec.md opens (no split view)",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS4: Given split view is open, When editing either file, Then changes can be saved",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS5": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS5: Given test editor is open, When viewing it, Then full content with syntax highlighting is shown",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS6": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us2-split-view.test.ts",
+              "testName": "US2-AS6: Given an integration test in tree, When clicking it, Then spec opens at parent scenario and test opens at test line",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US2-AS7": {
+          "level": "complete",
+          "tests": []
+        }
+      }
+    },
+    "US3": {
+      "overall": "complete",
+      "scenarios": {
+        "US3-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS1: Given a user story is selected in the tree, When context is prepared, Then user story context is available for Cascade",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS2: Given Cascade is open with spec context, When developer asks to clarify, Then Cascade has context-aware content available",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS3: Given Cascade suggests a spec update, When approved, Then spec.md can be updated",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS4: Given developer is viewing a spec, When they select text, Then selected context is available",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS5": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS5: Given multiple specs are open, When comparing, Then both contexts are available",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS6": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS6: Given an acceptance scenario, When Copy for Test is clicked, Then context is copied to clipboard",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS7": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS7: Given a spec without configured test directory, When Copy for Test is clicked first time, Then folder picker should be shown",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS8": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS8: Given a spec with configured test directory, When Copy for Test is clicked, Then stored directory is used",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US3-AS9": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us3-cascade.test.ts",
+              "testName": "US3-AS9: Given an acceptance scenario without linked test, When Copy for Test is clicked, Then context includes key info for AI",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    },
+    "US4": {
+      "overall": "complete",
+      "scenarios": {
+        "US4-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/extension.test.ts",
+              "testName": "US4-AS1: Given a user story in the tree, When double-clicked, Then spec.md opens with cursor at that user story",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US4-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/extension.test.ts",
+              "testName": "US4-AS2: Given a spec file is open, When edited and saved, Then tree view refreshes",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    },
+    "US5": {
+      "overall": "complete",
+      "scenarios": {
+        "US5-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us5-generate-tests.test.ts",
+              "testName": "US5-AS1: Given a user story with acceptance scenarios, When the developer asks Cascade to generate tests, Then Cascade creates integration test files based on the scenarios",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US5-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us5-generate-tests.test.ts",
+              "testName": "US5-AS2: Given a technology plan exists in the spec directory, When tests are generated, Then they follow the patterns and frameworks specified in the plan",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US5-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us5-generate-tests.test.ts",
+              "testName": "US5-AS3: Given generated tests, When viewing the user story in the tree, Then the tests appear as children under their respective acceptance scenarios",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US5-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us5-generate-tests.test.ts",
+              "testName": "US5-AS4: Given a generated test file, When the developer opens it, Then they can run the tests using VS Code test runner integration",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    },
+    "US6": {
+      "overall": "none",
+      "scenarios": {
+        "US6-AS1": {
+          "level": "none",
+          "tests": []
+        },
+        "US6-AS2": {
+          "level": "none",
+          "tests": []
+        },
+        "US6-AS3": {
+          "level": "none",
+          "tests": []
+        },
+        "US6-AS4": {
+          "level": "none",
+          "tests": []
+        }
+      }
+    },
+    "US7": {
+      "overall": "none",
+      "scenarios": {
+        "US7-AS1": {
+          "level": "none",
+          "tests": []
+        },
+        "US7-AS2": {
+          "level": "none",
+          "tests": []
+        },
+        "US7-AS3": {
+          "level": "none",
+          "tests": []
+        },
+        "US7-AS4": {
+          "level": "none",
+          "tests": []
+        }
+      }
+    },
+    "US8": {
+      "overall": "complete",
+      "scenarios": {
+        "US8-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS1: Given a feature spec directory, When viewing tree, Then maturity colors are available",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS2: Given a maturity.md file exists, When tree view loads, Then it reads maturity levels",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS3: Given no maturity.md file exists, When tree view loads, Then all items show none maturity",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS4: Given a user story, When viewing maturity icon, Then it reflects lowest scenario level",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS5": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS5: Given copyForTest output, Then it includes maturity evaluation instructions",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS6": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS6: Given AI implements a test, When following instructions, Then maturity.md can be updated",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS7": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS7: Given maturity.md is updated, When file is saved, Then cache is invalidated",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS8": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS8: Given a maturity icon, When hovering, Then tooltip shows level name and criteria",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS9": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS9: Given a user story in tree, When Copy for Test clicked, Then context includes test file naming rules",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS10": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS10: Given a test passes, When recorded in maturity.md, Then complete status with checkmark is supported",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS11": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS11: Given AI runs test and it passes, Then AI adds @passed comment before test in test file",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS12": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS12: Given test has @passed comment in test file, When viewing tree, Then test shows pass icon",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    },
+    "US9": {
+      "overall": "complete",
+      "scenarios": {
+        "US9-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS1: Given a test item in the tree view, When the developer clicks the Run Test button, Then a terminal opens and runs that specific test",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS2": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS2: Given a Playwright test file (.spec.ts), When running the test, Then the command uses npx playwright test with --grep",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS3": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS3: Given a Mocha/Jest test file (.test.ts), When running the test, Then the command uses npx mocha --grep",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS4": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS4: Given a Go test file (_test.go), When running the test, Then the command uses go test -v -run",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS5": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS5: Given a test without a specific test name, When running the test, Then the entire test file is executed",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS6": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS6: Given the test is running, When it completes, Then the developer sees the test output in the terminal",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

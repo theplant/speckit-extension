@@ -27,26 +27,28 @@ suite('US8: Test Maturity Level Tracking Test Suite', () => {
     assert.strictEqual(MATURITY_COLORS.complete, 'charts.green', 'Complete should use green color');
   });
 
-  test('US8-AS2: Given a maturity.md file exists, When tree view loads, Then it reads maturity levels', async () => {
-    // Create a spec directory with maturity.md
+  test('US8-AS2: Given a maturity.json file exists, When tree view loads, Then it reads maturity levels', async () => {
+    // Create a spec directory with maturity.json
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
     const specPath = path.join(featureDir, 'spec.md');
     fs.writeFileSync(specPath, '# Test Feature');
     
-    const maturityPath = path.join(featureDir, 'maturity.md');
-    const maturityContent = `---
-lastUpdated: 2024-12-30T12:00:00Z
----
-# Test Maturity Levels
-
-## US1
-- **Overall**: partial
-- **US1-AS1**: complete
-- **US1-AS2**: partial
-- **US1-AS3**: none
-`;
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    const maturityContent = JSON.stringify({
+      lastUpdated: '2024-12-30T12:00:00Z',
+      userStories: {
+        US1: {
+          overall: 'partial',
+          scenarios: {
+            'US1-AS1': { level: 'complete', tests: [] },
+            'US1-AS2': { level: 'partial', tests: [] },
+            'US1-AS3': { level: 'none', tests: [] }
+          }
+        }
+      }
+    });
     fs.writeFileSync(maturityPath, maturityContent);
 
     // Read maturity levels
@@ -59,8 +61,8 @@ lastUpdated: 2024-12-30T12:00:00Z
     assert.strictEqual(level3, 'none', 'US1-AS3 should be none');
   });
 
-  test('US8-AS3: Given no maturity.md file exists, When tree view loads, Then all items show none maturity', async () => {
-    // Create a spec directory WITHOUT maturity.md
+  test('US8-AS3: Given no maturity.json file exists, When tree view loads, Then all items show none maturity', async () => {
+    // Create a spec directory WITHOUT maturity.json
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
@@ -76,30 +78,34 @@ lastUpdated: 2024-12-30T12:00:00Z
   });
 
   test('US8-AS4: Given a user story, When viewing maturity icon, Then it reflects lowest scenario level', async () => {
-    // Create maturity.md with mixed levels
+    // Create maturity.json with mixed levels
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
     const specPath = path.join(featureDir, 'spec.md');
     fs.writeFileSync(specPath, '# Test Feature');
     
-    const maturityPath = path.join(featureDir, 'maturity.md');
-    const maturityContent = `---
-lastUpdated: 2024-12-30T12:00:00Z
----
-# Test Maturity Levels
-
-## US1
-- **Overall**: complete
-- **US1-AS1**: complete
-- **US1-AS2**: complete
-- **US1-AS3**: partial
-
-## US2
-- **Overall**: complete
-- **US2-AS1**: complete
-- **US2-AS2**: complete
-`;
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    const maturityContent = JSON.stringify({
+      lastUpdated: '2024-12-30T12:00:00Z',
+      userStories: {
+        US1: {
+          overall: 'complete',
+          scenarios: {
+            'US1-AS1': { level: 'complete', tests: [] },
+            'US1-AS2': { level: 'complete', tests: [] },
+            'US1-AS3': { level: 'partial', tests: [] }
+          }
+        },
+        US2: {
+          overall: 'complete',
+          scenarios: {
+            'US2-AS1': { level: 'complete', tests: [] },
+            'US2-AS2': { level: 'complete', tests: [] }
+          }
+        }
+      }
+    });
     fs.writeFileSync(maturityPath, maturityContent);
 
     // US1 should show 'partial' (lowest among complete, complete, partial)
@@ -120,7 +126,7 @@ lastUpdated: 2024-12-30T12:00:00Z
       'Step 1: Re-read the Acceptance Scenario',
       'Step 2: Compare with Test Implementation',
       'Step 3: Determine Maturity Level',
-      'Step 4: Update maturity.md'
+      'Step 4: Update maturity.json'
     ];
     
     // Verify instruction structure exists
@@ -130,7 +136,7 @@ lastUpdated: 2024-12-30T12:00:00Z
     }
   });
 
-  test('US8-AS6: Given AI implements a test, When following instructions, Then maturity.md can be updated', async () => {
+  test('US8-AS6: Given AI implements a test, When following instructions, Then maturity.json can be updated', async () => {
     // Create a spec directory
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
@@ -141,9 +147,9 @@ lastUpdated: 2024-12-30T12:00:00Z
     // Simulate AI updating maturity level
     maturityManager.setScenarioMaturity(specPath, 1, 'US1-AS1', 'complete');
     
-    // Verify maturity.md was created
-    const maturityPath = path.join(featureDir, 'maturity.md');
-    assert.ok(fs.existsSync(maturityPath), 'maturity.md should be created');
+    // Verify maturity.json was created
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    assert.ok(fs.existsSync(maturityPath), 'maturity.json should be created');
     
     // Verify content
     const content = fs.readFileSync(maturityPath, 'utf-8');
@@ -151,23 +157,43 @@ lastUpdated: 2024-12-30T12:00:00Z
     assert.ok(content.includes('complete'), 'Should contain maturity level');
   });
 
-  test('US8-AS7: Given maturity.md is updated, When file is saved, Then cache is invalidated', async () => {
-    // Create initial maturity.md
+  test('US8-AS7: Given maturity.json is updated, When file is saved, Then cache is invalidated', async () => {
+    // Create initial maturity.json
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
     const specPath = path.join(featureDir, 'spec.md');
     fs.writeFileSync(specPath, '# Test Feature');
     
-    const maturityPath = path.join(featureDir, 'maturity.md');
-    fs.writeFileSync(maturityPath, `## US1\n- **US1-AS1**: none\n`);
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    fs.writeFileSync(maturityPath, JSON.stringify({
+      lastUpdated: new Date().toISOString(),
+      userStories: {
+        US1: {
+          overall: 'none',
+          scenarios: {
+            'US1-AS1': { level: 'none', tests: [] }
+          }
+        }
+      }
+    }));
 
     // Read initial value (caches it)
     let level = maturityManager.getScenarioMaturity(specPath, 1, 'US1-AS1');
     assert.strictEqual(level, 'none', 'Initial level should be none');
     
     // Update file directly
-    fs.writeFileSync(maturityPath, `## US1\n- **US1-AS1**: complete\n`);
+    fs.writeFileSync(maturityPath, JSON.stringify({
+      lastUpdated: new Date().toISOString(),
+      userStories: {
+        US1: {
+          overall: 'complete',
+          scenarios: {
+            'US1-AS1': { level: 'complete', tests: [] }
+          }
+        }
+      }
+    }));
     
     // Clear cache and re-read
     maturityManager.clearCache(specPath);
@@ -212,25 +238,27 @@ lastUpdated: 2024-12-30T12:00:00Z
     assert.ok(usPattern.test(testFilename), 'Test filename should match user story pattern');
   });
 
-  test('US8-AS10: Given a test passes, When recorded in maturity.md, Then complete status with checkmark is supported', async () => {
-    // Create a spec directory with maturity.md that includes complete status
+  test('US8-AS10: Given a test passes, When recorded in maturity.json, Then complete status with checkmark is supported', async () => {
+    // Create a spec directory with maturity.json that includes complete status
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
     const specPath = path.join(featureDir, 'spec.md');
     fs.writeFileSync(specPath, '# Test Feature');
     
-    const maturityPath = path.join(featureDir, 'maturity.md');
-    const maturityContent = `---
-lastUpdated: 2024-12-30
----
-# Test Maturity Levels
-
-## US1
-- **Overall**: complete
-- **US1-AS1**: complete
-- **US1-AS2**: partial
-`;
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    const maturityContent = JSON.stringify({
+      lastUpdated: '2024-12-30',
+      userStories: {
+        US1: {
+          overall: 'complete',
+          scenarios: {
+            'US1-AS1': { level: 'complete', tests: [] },
+            'US1-AS2': { level: 'partial', tests: [] }
+          }
+        }
+      }
+    });
     fs.writeFileSync(maturityPath, maturityContent);
 
     // Read maturity levels

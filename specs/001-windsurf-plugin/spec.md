@@ -1,6 +1,3 @@
----
-testDirectory: test/suite
----
 # Feature Specification: Windsurf Plugin for SpecKit
 
 **Feature Branch**: `002-windsurf-plugin`  
@@ -71,10 +68,10 @@ A developer uses the "Copy for Test" feature to copy the context of a user story
 1. **Given** a user story or scenario is selected in the tree, **When** the developer clicks "Copy for Test", **Then** a detailed context block is copied to the clipboard including spec content, test directory, and instructions for AI
 2. **Given** context has been copied, **When** the developer pastes it into Cascade, **Then** Cascade understands the specific user story or scenario and can provide context-aware assistance
 3. **Given** Cascade suggests a spec update, **When** the developer approves it, **Then** the spec.md file is updated with the suggested changes (via Cascade's file editing capabilities)
-4. **Given** a spec without a configured test directory, **When** the developer clicks "Copy for Test" for the first time, **Then** a folder picker dialog appears to let them choose the test directory, which is stored in the spec.md metadata
-5. **Given** a spec with a configured test directory (stored in metadata), **When** the developer clicks "Copy for Test", **Then** the extension uses the stored test directory without prompting again
+4. **Given** a spec without a `maturity.json` file, **When** the developer clicks "Copy for Test", **Then** the copied context includes instructions for AI to scan existing test files in the workspace and create an initial `maturity.json` that maps tests to acceptance scenarios
+5. **Given** a spec with a `maturity.json` file, **When** the developer clicks "Copy for Test", **Then** the extension uses the test information from `maturity.json` without any prompts
 6. **Given** an acceptance scenario in the tree, **When** the developer clicks "Copy for Test", **Then** the copied context includes scenario details (Given/When/Then) and evaluation instructions for AI
-7. **Given** the AI has implemented/updated a test, **When** following the copied instructions, **Then** the AI evaluates the test against the acceptance scenario and provides instructions on how to update `maturity.md`
+7. **Given** the AI has implemented/updated a test, **When** following the copied instructions, **Then** the AI evaluates the test against the acceptance scenario and updates `maturity.json` with the test mapping
 8. **Given** a user story or scenario, **When** the developer clicks "Copy for Test", **Then** the copied context includes test file naming rules so AI creates files that match the linking convention (e.g., `usN-feature.spec.ts`)
 9. **Given** the "Copy for Test" action is performed, **When** it completes, **Then** a notification confirms that context was copied to the clipboard
 
@@ -169,24 +166,25 @@ A developer can run a single integration test directly from the tree view by cli
 
 ### User Story 8 - Test Maturity Level Tracking (Priority: P1)
 
-A developer can see the test maturity level for each user story and acceptance scenario in the tree view, indicated by visual icons. The maturity levels are stored in a `maturity.md` file alongside `spec.md`. The extension also tracks test pass status via specific comments in test files.
+A developer can see the test maturity level for each user story and acceptance scenario in the tree view, indicated by visual icons. The maturity levels are stored in a `maturity.json` file alongside `spec.md`. The extension automatically scans test files to discover tests and their pass/fail status, storing test names (not line numbers) for stable linking.
 
 **Why this priority**: Test maturity tracking provides immediate visual feedback on spec coverage quality, helping developers identify gaps and track progress.
 
-**Independent Test**: Can be tested by creating a maturity.md file with maturity levels, opening the tree view, and verifying icons appear next to user stories and acceptance scenarios.
+**Independent Test**: Can be tested by creating a maturity.json file with maturity levels, opening the tree view, and verifying icons appear next to user stories and acceptance scenarios.
 
 **Acceptance Scenarios**:
 
 1. **Given** a feature spec directory, **When** the developer views the tree, **Then** user stories and acceptance scenarios show maturity level icons with colors (🔴 None, 🟡 Partial, 🟢 Complete)
-2. **Given** a `maturity.md` file exists in the spec directory, **When** the tree view loads, **Then** it reads maturity levels from the file and displays appropriate icons based on the `overall` status and scenario levels
-3. **Given** no `maturity.md` file exists, **When** the tree view loads, **Then** all items show 🔴 (None) maturity level by default
+2. **Given** a `maturity.json` file exists in the spec directory, **When** the tree view loads, **Then** it reads maturity levels from the file and displays appropriate icons based on the `overall` status and scenario levels
+3. **Given** no `maturity.json` file exists, **When** the tree view loads, **Then** all items show 🔴 (None) maturity level by default
 4. **Given** a user story in the tree, **When** viewing its maturity icon, **Then** the icon reflects the lowest maturity level among its acceptance scenarios
 5. **Given** a test file exists in the tree view (under an acceptance scenario), **When** it contains a `// @passed: YYYY-MM-DD` comment, **Then** the test item shows a green checkmark icon
 6. **Given** a test file exists in the tree view, **When** it contains a `// @failed: YYYY-MM-DD` comment, **Then** the test item shows a red error icon
 7. **Given** a test file exists in the tree view with no pass/fail comment, **When** viewed in the tree, **Then** it shows a default beaker icon
 8. **Given** a maturity icon in the tree, **When** hovering over it, **Then** a tooltip shows the maturity level name and criteria
-9. **Given** a `maturity.md` or test file is updated, **When** saved, **Then** the tree view refreshes automatically to reflect the changes
+9. **Given** a `maturity.json` or test file is updated, **When** saved, **Then** the tree view refreshes automatically to reflect the changes
 10. **Given** the tree view, **When** the developer uses the "Expand All" command on a feature or user story, **Then** all child items are recursively expanded to show the full status
+11. **Given** a "Refresh Maturity" command is executed, **When** test files exist in the test directory, **Then** the extension scans all test files and generates/updates `maturity.json` with discovered tests linked to their scenarios by test name
 
 **Maturity Levels** (shown as icon color):
 
@@ -205,18 +203,40 @@ A developer can see the test maturity level for each user story and acceptance s
 - Format: `// @passed: YYYY-MM-DD` or `// @failed: YYYY-MM-DD` directly before the test function.
 - The extension parses these comments to show ✓/✗ icons in the tree view.
 
-**Maturity.md Format**:
-```markdown
----
-lastUpdated: 2024-12-30T...
----
-# Test Maturity Levels
-
-## US1
-- **Overall**: partial
-- **US1-AS1**: complete | tests: [file.spec.ts#testname: ✓]
-- **US1-AS2**: none
+**maturity.json Format**:
+```json
+{
+  "lastUpdated": "2024-12-30T12:00:00Z",
+  "userStories": {
+    "US1": {
+      "overall": "partial",
+      "scenarios": {
+        "US1-AS1": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us1-view-navigate.test.ts",
+              "testName": "US1-AS1: Given plugin installed, When opening Windsurf...",
+              "status": "pass",
+              "lastRun": "2024-12-30"
+            }
+          ]
+        },
+        "US1-AS2": {
+          "level": "none",
+          "tests": []
+        }
+      }
+    }
+  }
+}
 ```
+
+**Key Design Decisions**:
+- **Test names instead of line numbers**: Line numbers are fragile and change when code is edited. Test names are stable identifiers.
+- **JSON format**: Easier to parse programmatically, supports structured data, and is more reliable than markdown parsing.
+- **Auto-discovery**: The extension can scan test files and automatically populate maturity.json by matching test names to scenario IDs.
+- **File path storage**: Each test entry stores its file path, so the extension can find the test position by searching for the test name in that file.
 
 **Icons**: 
 - User stories: `book` (📖) icon with maturity color.
@@ -245,11 +265,11 @@ lastUpdated: 2024-12-30T...
 - **FR-005**: Plugin MUST open integration test files in a split view on the right when a user story with linked tests is selected or when a test item is clicked
 - **FR-006**: Plugin MUST scroll both editors to the relevant section when acceptance scenarios or tests are clicked in the tree
 - **FR-007**: Plugin MUST provide a "Copy for Test" action that copies structured context (spec content, test directory, instructions) to the clipboard for use with Cascade AI
-- **FR-008**: Plugin MUST prompt the user to select a test directory for each spec if one is not already configured in the metadata
-- **FR-009**: Plugin MUST watch spec.md, maturity.md, and test files for changes and update the tree view automatically
+- **FR-008**: Plugin MUST include instructions for AI to scan and discover test files when `maturity.json` does not exist, creating an initial mapping of tests to acceptance scenarios
+- **FR-009**: Plugin MUST watch spec.md, maturity.json, and test files for changes and update the tree view automatically
 - **FR-010**: Plugin MUST provide a command to create a new spec directory and spec.md file from a template
 - **FR-011**: Plugin MUST support "Expand All" to recursively expand tree nodes for a feature or user story
-- **FR-012**: Plugin MUST track test maturity levels (none, partial, complete) in a `maturity.md` file
+- **FR-012**: Plugin MUST track test maturity levels (none, partial, complete) in a `maturity.json` file
 - **FR-013**: Plugin MUST parse `@passed` and `@failed` comments in test files to display execution status in the tree view
 - **FR-014**: Plugin MUST provide outline view integration for spec file structure (via VS Code's native markdown support)
 - **FR-015**: Plugin MUST persist user preferences (last opened spec, last selected item) in workspace state
@@ -260,7 +280,7 @@ lastUpdated: 2024-12-30T...
 - **Workspace**: The currently open VS Code/Windsurf workspace folder. Contains the `specs/` directory.
 - **Feature Spec**: A subdirectory in `specs/` containing a spec.md file. Named with pattern `[number]-[feature-name]/`.
 - **Spec File**: A markdown file (spec.md) containing user stories and acceptance scenarios.
-- **Maturity File**: A markdown file (maturity.md) in the feature spec directory that tracks implementation progress and maturity levels.
+- **Maturity File**: A JSON file (maturity.json) in the feature spec directory that tracks implementation progress, maturity levels, and test file paths with test names for stable linking.
 - **User Story**: A section within a spec file describing a user journey. Linked to tests via filename matching (e.g., `us1`).
 - **Acceptance Scenario**: A Given/When/Then case within a user story. Linked to tests via ID matching (e.g., `US1-AS1`) or `@spec:` annotations.
 - **Integration Test**: A test case in a `.spec.ts` or `.test.ts` file. Shows pass/fail status based on inline comments.
