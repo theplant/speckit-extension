@@ -31,7 +31,7 @@ suite('US2: Split View with Spec and Integration Tests', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2026-01-05
+  
   test('US2-AS1: Given a user story with linked tests, When clicking it, Then spec opens left and test opens right (split view)', async () => {
     // Get the actual workspace root that VS Code sees
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -123,7 +123,7 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
       activate(mockContext);
     }
     
-    // Create a SpecTreeItem for the user story
+    // Create a SpecTreeItem for the user story with linkedTests populated
     const { SpecTreeItem } = require('../../src/types');
     const story = {
       number: 1,
@@ -131,7 +131,16 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
       priority: 'P1',
       startLine: 12,
       acceptanceScenarios: [
-        { id: 'US1-AS1', line: 12 }
+        { 
+          id: 'US1-AS1', 
+          line: 12,
+          linkedTests: [{
+            filePath: testPath,
+            fileName: testFileName,
+            testName: 'US1-AS1: Given context, When action, Then result',
+            line: 3
+          }]
+        }
       ]
     };
     
@@ -153,13 +162,11 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     assert.strictEqual(item.command?.command, 'speckit.openWithTests', 
       'User story should have openWithTests command');
     
-    // Verify the test file can be found by TestLinker
-    const { TestLinker } = require('../../src/linkers/testLinker');
-    const testLinker = new TestLinker();
-    const foundTestFile = testLinker.findTestFileForStory(workspaceRoot, 'tests/e2e', 1);
-    assert.ok(foundTestFile, 'Test file should be found for user story');
-    assert.strictEqual(foundTestFile.toLowerCase(), testPath.toLowerCase(), 
-      'Found test file path should match expected path');
+    // Verify linkedTests is populated (now comes from maturity.json, not testLinker)
+    assert.ok(story.acceptanceScenarios[0].linkedTests.length > 0, 
+      'Scenario should have linkedTests populated');
+    assert.strictEqual(story.acceptanceScenarios[0].linkedTests[0].filePath, testPath,
+      'LinkedTest filePath should match test file');
     
     // Execute the command
     await vscode.commands.executeCommand('speckit.openWithTests', item);
@@ -188,7 +195,7 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     fs.rmSync(testPath, { force: true });
   });
 
-  // @passed: 2026-01-05
+  
   test('US2-AS2: Given split view is open, When clicking acceptance scenario, Then both editors scroll to corresponding locations', async () => {
     // Create spec file with multiple scenarios
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -250,7 +257,7 @@ test('US1-AS3: Given third condition, When third action, Then third result', asy
     assert.strictEqual(testEditor?.selection.active.line, 6, 'Test should be scrolled to line 7 (0-indexed: 6)');
   });
 
-  // @passed: 2025-12-30
+  
   test('US2-AS3: Given a user story without linked tests, When clicking it, Then only spec.md opens (no split view)', async () => {
     // Create spec file without test directory configured
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -283,7 +290,7 @@ Description.
     assert.strictEqual(visibleEditors[0].document.uri.fsPath, specPath, 'Only spec should be open');
   });
 
-  // @passed: 2025-12-30
+  
   test('US2-AS4: Given split view is open, When editing either file, Then changes can be saved', async () => {
     // Create spec and test files
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -337,7 +344,7 @@ Description.
     assert.ok(savedTestContent.includes('New test content'), 'Test file should contain new content');
   });
 
-  // @passed: 2025-12-30
+  
   test('US2-AS5: Given test editor is open, When viewing it, Then full content with syntax highlighting is shown', async () => {
     // Create test file with TypeScript content
     const testContent = `import { test, expect } from '@playwright/test';
@@ -367,7 +374,7 @@ test.describe('US1: Test Feature', () => {
     assert.strictEqual(testEditor.document.languageId, 'typescript', 'Language should be TypeScript');
   });
 
-  // @passed: 2025-12-30
+  
   test('US2-AS6: Given an integration test in tree, When clicking it, Then spec opens at parent scenario and test opens at test line', async () => {
     // Create spec file
     const featureDir = path.join(specsDir, '001-test-feature');

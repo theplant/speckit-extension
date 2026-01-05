@@ -77,7 +77,7 @@ suite('US9: Run Single Test from Tree View', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS1: Given a test item in the tree view, When the developer clicks the Run Test button, Then a terminal opens and runs that specific test', async () => {
     // Verify the runTest command is registered
     const commands = await vscode.commands.getCommands();
@@ -126,7 +126,7 @@ test('US1-AS1: Given condition, When action, Then result', async ({ page }) => {
     assert.ok(speckitTerminal, 'SpecKit terminal should exist');
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS2: Given a Playwright test file (.spec.ts), When running the test, Then the command uses npx playwright test with --grep', async () => {
     // Create a Playwright test file
     const testFilePath = path.join(testsDir, 'us2-feature.spec.ts');
@@ -168,7 +168,7 @@ test('${testName}', async ({ page }) => {
     assert.ok(speckitTerminal, 'Terminal should be created for Playwright test');
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS3: Given a Mocha/Jest test file (.test.ts), When running the test, Then the command uses npx mocha --grep', async () => {
     // Create a Mocha test file
     const testFilePath = path.join(testsDir, 'us3-feature.test.ts');
@@ -212,7 +212,7 @@ describe('Feature tests', () => {
     assert.ok(speckitTerminal, 'Terminal should be created for Mocha test');
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS4: Given a Go test file (_test.go), When running the test, Then the command uses go test -v -run', async () => {
     // Create a Go test file
     const goTestsDir = path.join(tempDir, 'go-tests');
@@ -258,7 +258,7 @@ func ${testName}(t *testing.T) {
     assert.ok(speckitTerminal, 'Terminal should be created for Go test');
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS5: Given a test without a specific test name, When running the test, Then the entire test file is executed', async () => {
     // Create a test file
     const testFilePath = path.join(testsDir, 'us5-feature.spec.ts');
@@ -297,7 +297,7 @@ test('Test 2', async ({ page }) => {});
     assert.ok(speckitTerminal, 'Terminal should be created to run entire file');
   });
 
-  // @passed: 2026-01-05
+  
   test('US9-AS6: Given the test is running, When it completes, Then the developer sees the test output in the terminal', async () => {
     // Create a simple test file
     const testFilePath = path.join(testsDir, 'us6-feature.spec.ts');

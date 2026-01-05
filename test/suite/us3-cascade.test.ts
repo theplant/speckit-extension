@@ -18,7 +18,7 @@ suite('US3: Cascade AI Integration Test Suite', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS1: Given a user story is selected in the tree, When context is prepared, Then user story context is available for Cascade', async () => {
     // Create a test spec file with user stories
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -67,7 +67,7 @@ This is a test user story description that should be included in Cascade context
     // makes its context available in the editor for Cascade to read.
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS2: Given Cascade is open with spec context, When developer asks to clarify, Then Cascade has context-aware content available', async () => {
     // Create a spec file with detailed requirements
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -107,7 +107,7 @@ Users should be able to log in with email and password. The system validates cre
     assert.ok(docContent.includes('registered user'), 'Context should include acceptance scenarios');
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS3: Given Cascade suggests a spec update, When approved, Then spec.md can be updated', async () => {
     // Create a spec file
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -157,7 +157,7 @@ Updated description with more details.
     assert.ok(savedContent.includes('more details'), 'File should contain updated description');
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS4: Given developer is viewing a spec, When they select text, Then selected context is available', async () => {
     // Create a spec file
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -201,7 +201,7 @@ This specific requirement needs clarification from the team.
     // Cascade can now read this selection via editor.selection
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS5: Given multiple specs are open, When comparing, Then both contexts are available', async () => {
     // Create two spec files
     const feature1Dir = path.join(specsDir, '001-feature-a');
@@ -248,7 +248,7 @@ Depends on Feature A for authentication.
     assert.ok(content2?.includes('Depends on Feature A'), 'Dependency relationship should be visible');
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS6: Given an acceptance scenario, When Copy for Test is clicked, Then context is copied to clipboard', async () => {
     // Create a test spec file
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -301,7 +301,7 @@ Description.
     assert.ok(clipboardContent.includes('testing workflow'), 'Clipboard should mention testing workflow');
   });
 
-  // @passed: 2026-01-05
+  
   test('US3-AS7: Given a spec without maturity.json, When Copy for Test is clicked, Then context includes AI instructions to create maturity.json', async () => {
     // Create a spec file WITHOUT maturity.json
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -335,7 +335,7 @@ Description.
     }
   });
 
-  // @passed: 2026-01-05
+  
   test('US3-AS8: Given a spec with maturity.json, When Copy for Test is clicked, Then extension uses test info without prompts', async () => {
     // Create a spec file WITH maturity.json
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -384,7 +384,7 @@ Description.
     assert.ok(parsedMaturity.userStories.US1.scenarios['US1-AS1'].tests.length > 0, 'Should have test entries');
   });
 
-  // @passed: 2025-12-30
+  
   test('US3-AS9: Given an acceptance scenario without linked test, When Copy for Test is clicked, Then context includes key info for AI', async () => {
     // Simulate what the copyForTest command generates for a scenario without a test
     const storyNumber = 3;

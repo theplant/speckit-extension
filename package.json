@@ -117,7 +117,7 @@
         },
         {
           "command": "speckit.runTest",
-          "when": "view == speckit.specsView && viewItem == test",
+          "when": "view == speckit.specsView && (viewItem == test || viewItem == scenario || viewItem == userStory)",
           "group": "inline@3"
         }
       ]

@@ -51,29 +51,28 @@ export function activate(context: vscode.ExtensionContext) {
       const config = vscode.workspace.getConfiguration('speckit');
       const autoOpen = config.get<boolean>('autoOpenSplitView', true);
       
-      // Get test directory from spec.md metadata first, fall back to config
-      const metadataManager = treeProvider.getMetadataManager();
-      let testsDir = metadataManager.getTestDirectory(item.filePath);
-      if (!testsDir) {
-        testsDir = config.get<string>('testsDirectory', 'tests/e2e');
-      }
-      
       await stateManager.setLastOpenedSpec(item.filePath);
       await stateManager.setLastSelectedItem(`${item.type}:${item.filePath}:${item.line}`);
 
-      const testFile = testLinker.findTestFileForStory(workspaceRoot, testsDir, story.number);
+      // Get test file from maturity.json via linked tests in scenarios
+      let testFile: string | undefined;
+      let testLine: number | undefined;
+      
+      // Find first scenario with linked tests
+      for (const scenario of story.acceptanceScenarios) {
+        if (scenario.linkedTests && scenario.linkedTests.length > 0) {
+          testFile = scenario.linkedTests[0].filePath;
+          testLine = scenario.linkedTests[0].line;
+          break;
+        }
+      }
       
       if (testFile && autoOpen) {
-        await editorController.openSplitView(item.filePath, testFile, story.startLine);
+        await editorController.openSplitView(item.filePath, testFile, story.startLine, testLine);
       } else {
         // Close secondary editor if no test file exists
         await editorController.closeSecondaryEditor();
         await editorController.openSpecAtLine(item.filePath, story.startLine);
-        if (testFile && !autoOpen) {
-           // If tests exist but autoOpen is off, we don't show a message unless they specifically clicked "Open with Tests" from a menu (though here it's the default click)
-        } else if (!testFile && autoOpen) {
-           vscode.window.showInformationMessage(`No test file found for User Story ${story.number}`);
-        }
       }
     }),
 
@@ -165,37 +164,11 @@ export function activate(context: vscode.ExtensionContext) {
       const config = vscode.workspace.getConfiguration('speckit');
       const autoOpen = config.get<boolean>('autoOpenSplitView', true);
       
-      // Get test directory from spec.md metadata first, fall back to config
-      const metadataManager = treeProvider.getMetadataManager();
-      let testsDir = metadataManager.getTestDirectory(item.filePath);
-      if (!testsDir) {
-        testsDir = config.get<string>('testsDirectory', 'tests/e2e');
-      }
-      
-      // Find linked tests for this scenario
+      // Use linked tests from maturity.json (already populated in scenario.linkedTests)
       if (scenario.linkedTests && scenario.linkedTests.length > 0 && autoOpen) {
         // Open split view with spec scrolled to scenario and test scrolled to test line
         const test = scenario.linkedTests[0];
         await editorController.openSplitView(item.filePath, test.filePath, scenario.line, test.line);
-      } else if (scenario.userStory && autoOpen) {
-        // Try to find test for the parent user story's scenario
-        const featureName = item.filePath.split('/specs/')[1]?.split('/')[0]?.replace(/^\d+-/, '') || 'feature';
-        const tests = await testLinker.findTestsForScenario(
-          workspaceRoot,
-          testsDir,
-          featureName,
-          scenario.userStory.number,
-          parseInt(scenario.id.replace(/.*AS/, '')) || 1
-        );
-        
-        if (tests.length > 0) {
-          const test = tests[0];
-          await editorController.openSplitView(item.filePath, test.filePath, scenario.line, test.line);
-        } else {
-          // No linked test found, close secondary editor and just open spec
-          await editorController.closeSecondaryEditor();
-          await editorController.openSpecAtLine(item.filePath, scenario.line);
-        }
       } else {
         // Close secondary editor when no test available
         await editorController.closeSecondaryEditor();
@@ -248,14 +221,26 @@ export function activate(context: vscode.ExtensionContext) {
 
 The \`maturity.json\` file does not exist for this spec. Before implementing tests, please:
 
-1. **Scan the workspace** for existing test files that might be related to this spec
-2. **Look for test files** matching patterns: \`us*.spec.ts\`, \`us*.test.ts\`, \`*_test.go\`
+1. **Analyze the project** to detect the test framework:
+   - Check \`package.json\` for: \`@playwright/test\`, \`@vscode/test-electron\`, \`mocha\`, \`jest\`
+   - Check for Go test files (\`*_test.go\`)
+
+2. **Scan the workspace** for existing test files matching patterns: \`us*.spec.ts\`, \`us*.test.ts\`, \`*_test.go\`
+
 3. **Parse test names** to find scenario IDs like \`US1-AS1\`, \`US2-AS3\`, etc.
+
 4. **Create \`${maturityFilePath}\`** with the following structure:
 
 \`\`\`json
 {
   "lastUpdated": "${new Date().toISOString()}",
+  "testConfig": {
+    "framework": "<detected-framework>",
+    "runCommand": "<command to run all tests>",
+    "runSingleTestCommand": "<command with {testName}, {filePath}, {testDir} placeholders>",
+    "runScenarioCommand": "<command with {scenarioId} placeholder>",
+    "runUserStoryCommand": "<command with {userStoryPattern} placeholder>"
+  },
   "userStories": {
     "US1": {
       "overall": "none",
@@ -269,6 +254,16 @@ The \`maturity.json\` file does not exist for this spec. Before implementing tes
   }
 }
 \`\`\`
+
+**Test Config Examples by Framework**:
+
+| Framework | testConfig Example |
+|-----------|-------------------|
+| Playwright | \`{"framework": "playwright", "runCommand": "npx playwright test", "runSingleTestCommand": "npx playwright test \\"{filePath}\\" --grep \\"{testName}\\"", "runScenarioCommand": "npx playwright test --grep \\"{scenarioId}\\"", "runUserStoryCommand": "npx playwright test --grep \\"{userStoryPattern}\\""}\` |
+| VS Code Extension | \`{"framework": "vscode-extension", "runCommand": "pnpm test", "runSingleTestCommand": "SPECKIT_TEST_GREP=\\"{testName}\\" pnpm test", "runScenarioCommand": "SPECKIT_TEST_GREP=\\"{scenarioId}\\" pnpm test", "runUserStoryCommand": "SPECKIT_TEST_GREP=\\"{userStoryPattern}\\" pnpm test"}\` |
+| Mocha | \`{"framework": "mocha", "runCommand": "npx mocha", "runSingleTestCommand": "npx mocha --grep \\"{testName}\\" \\"{filePath}\\"", "runScenarioCommand": "npx mocha --grep \\"{scenarioId}\\"", "runUserStoryCommand": "npx mocha --grep \\"{userStoryPattern}\\""}\` |
+| Jest | \`{"framework": "jest", "runCommand": "npx jest", "runSingleTestCommand": "npx jest \\"{filePath}\\" -t \\"{testName}\\"", "runScenarioCommand": "npx jest -t \\"{scenarioId}\\"", "runUserStoryCommand": "npx jest -t \\"{userStoryPattern}\\""}\` |
+| Go | \`{"framework": "go", "runCommand": "go test ./...", "runSingleTestCommand": "go test -v -run \\"{testName}\\" ./{testDir}", "runScenarioCommand": "go test -v -run \\"{scenarioId}\\" ./...", "runUserStoryCommand": "go test -v -run \\"{userStoryPattern}\\" ./..."}\` |
 
 For each test found, add an entry to the appropriate scenario's \`tests\` array:
 \`\`\`json
@@ -509,19 +504,72 @@ After implementing the test, **run it** and update maturity.json with the result
       await expandRecursively(item);
     }),
 
-    // Run a single test from the tree view
+    // Run a single test from the tree view (supports test, scenario, and userStory)
     vscode.commands.registerCommand('speckit.runTest', async (item: SpecTreeItem) => {
-      if (!item || item.type !== 'test') return;
+      if (!item) return;
       
-      const test = item.data as IntegrationTest;
-      if (!test.filePath) {
-        vscode.window.showErrorMessage('No test file path available');
+      const maturityManager = treeProvider.getMaturityManager();
+      const testConfig = maturityManager.getTestConfig(item.filePath);
+      
+      let command: string;
+      let displayName: string;
+      
+      if (item.type === 'test') {
+        const test = item.data as IntegrationTest;
+        if (!test.filePath) {
+          vscode.window.showErrorMessage('No test file path available');
+          return;
+        }
+        
+        const relativePath = path.relative(workspaceRoot, test.filePath);
+        const testDir = path.dirname(relativePath);
+        const escapedTestName = (test.testName || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        if (testConfig?.runSingleTestCommand) {
+          command = testConfig.runSingleTestCommand
+            .replace('{testName}', escapedTestName)
+            .replace('{filePath}', relativePath)
+            .replace('{testDir}', testDir);
+        } else {
+          command = `pnpm test`;
+        }
+        displayName = test.testName || relativePath;
+        
+      } else if (item.type === 'scenario') {
+        const scenario = item.data as AcceptanceScenario;
+        if (!scenario.linkedTests || scenario.linkedTests.length === 0) {
+          vscode.window.showInformationMessage(`No tests linked to ${scenario.id}`);
+          return;
+        }
+        
+        if (testConfig?.runScenarioCommand) {
+          command = testConfig.runScenarioCommand
+            .replace('{scenarioId}', scenario.id);
+        } else {
+          command = `pnpm test`;
+        }
+        displayName = scenario.id;
+        
+      } else if (item.type === 'userStory') {
+        const story = item.data as UserStory;
+        const hasTests = story.acceptanceScenarios.some(s => s.linkedTests && s.linkedTests.length > 0);
+        
+        if (!hasTests) {
+          vscode.window.showInformationMessage(`No tests linked to US${story.number}`);
+          return;
+        }
+        
+        if (testConfig?.runUserStoryCommand) {
+          command = testConfig.runUserStoryCommand
+            .replace('{userStoryPattern}', `US${story.number}-`);
+        } else {
+          command = `pnpm test`;
+        }
+        displayName = `US${story.number}`;
+        
+      } else {
         return;
       }
-
-      // Extract test name for grep pattern
-      const testName = test.testName || '';
-      const relativePath = path.relative(workspaceRoot, test.filePath);
       
       // Create terminal and run the test
       const terminal = vscode.window.createTerminal({
@@ -529,92 +577,8 @@ After implementing the test, **run it** and update maturity.json with the result
         cwd: workspaceRoot
       });
       terminal.show();
-
-      // Detect test framework from file extension and project configuration
-      const ext = path.extname(test.filePath);
-      let command: string;
-      
-      // Check for package.json to detect test framework
-      const packageJsonPath = path.join(workspaceRoot, 'package.json');
-      let hasPlaywright = false;
-      let hasMocha = false;
-      let hasJest = false;
-      let testScript = '';
-      
-      try {
-        const packageJson = JSON.parse(require('fs').readFileSync(packageJsonPath, 'utf-8'));
-        const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-        hasPlaywright = !!deps['@playwright/test'] || !!deps['playwright'];
-        hasMocha = !!deps['mocha'];
-        hasJest = !!deps['jest'];
-        testScript = packageJson.scripts?.test || '';
-      } catch {
-        // No package.json or can't parse it
-      }
-      
-      if (ext === '.ts' || ext === '.js') {
-        // Check if it's a Playwright test or Mocha test
-        if (test.filePath.includes('.spec.ts') || test.filePath.includes('.spec.js')) {
-          if (hasPlaywright) {
-            // Use Playwright
-            if (testName) {
-              command = `npx playwright test "${relativePath}" --grep "${testName.replace(/"/g, '\\"')}"`;
-            } else {
-              command = `npx playwright test "${relativePath}"`;
-            }
-          } else {
-            // Fallback to running the project's test script with grep
-            command = `pnpm test`;
-            vscode.window.showInformationMessage('Running full test suite (Playwright not detected)');
-          }
-        } else if (test.filePath.includes('.test.ts') || test.filePath.includes('.test.js')) {
-          // For .test.ts files, check if it's a VS Code extension test
-          if (testScript.includes('runTest') || testScript.includes('vscode')) {
-            // VS Code extension tests - use SPECKIT_TEST_GREP env var to filter
-            if (testName) {
-              // Escape special regex characters in test name
-              const escapedTestName = testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              command = `SPECKIT_TEST_GREP="${escapedTestName}" pnpm test`;
-            } else {
-              command = `pnpm test`;
-            }
-          } else if (hasMocha) {
-            // Regular Mocha tests
-            if (testName) {
-              command = `npx mocha --grep "${testName.replace(/"/g, '\\"')}" "${relativePath}"`;
-            } else {
-              command = `npx mocha "${relativePath}"`;
-            }
-          } else if (hasJest) {
-            // Jest tests
-            if (testName) {
-              command = `npx jest "${relativePath}" -t "${testName.replace(/"/g, '\\"')}"`;
-            } else {
-              command = `npx jest "${relativePath}"`;
-            }
-          } else {
-            // Fallback to project's test script
-            command = `pnpm test`;
-          }
-        } else {
-          // Default to running the file directly
-          command = `npx ts-node "${relativePath}"`;
-        }
-      } else if (ext === '.go') {
-        // Go test
-        const testDir = path.dirname(relativePath);
-        if (testName) {
-          command = `go test -v -run "${testName}" ./${testDir}`;
-        } else {
-          command = `go test -v ./${testDir}`;
-        }
-      } else {
-        // Generic - just try to run with node
-        command = `node "${relativePath}"`;
-      }
-
       terminal.sendText(command);
-      vscode.window.showInformationMessage(`Running test: ${testName || relativePath}`);
+      vscode.window.showInformationMessage(`Running test: ${displayName}`);
     })
   );
 

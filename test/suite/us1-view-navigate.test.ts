@@ -20,7 +20,7 @@ suite('US1: View and Navigate Specs in VS Code Sidebar', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS1: Given plugin installed, When opening Windsurf with specs directory, Then SpecKit icon appears in activity bar', async () => {
     // Verify the extension's package.json has the correct contributions
     // This tests the extension is properly configured to appear in the activity bar
@@ -49,7 +49,7 @@ suite('US1: View and Navigate Specs in VS Code Sidebar', () => {
       'Should activate on specs directory');
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS2: Given spec sidebar is open, When viewing it, Then tree view shows feature specs at root level', async () => {
     // Create test spec files
     const feature1Dir = path.join(specsDir, '001-feature-one');
@@ -85,7 +85,7 @@ Description.
     assert.strictEqual(rootItems[0].type, 'feature', 'Root items should be feature type');
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS3: Given a feature spec in tree, When expanding it, Then user stories appear with priority indicators', async () => {
     // Create test spec with multiple user stories
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -148,7 +148,7 @@ Description for P3 story.
     assert.ok(userStories[2].label?.toString().includes('US3'), 'Should show US3');
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS4: Given a user story in tree, When expanding it, Then acceptance scenarios appear showing Given+When text', async () => {
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
@@ -191,7 +191,7 @@ Description.
     assert.strictEqual(scenarios[0].type, 'scenario', 'Should be scenario type');
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS5: Given an acceptance scenario in tree, When expanding it, Then linked integration tests appear (if any)', async () => {
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
@@ -248,7 +248,7 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     assert.strictEqual(scenario.type, 'scenario', 'Should be scenario type');
   });
 
-  // @passed: 2025-12-30
+  
   test('US1-AS6: Given a user story in tree, When clicking it, Then spec.md opens at that user story line', async () => {
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });

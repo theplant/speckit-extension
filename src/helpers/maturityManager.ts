@@ -24,9 +24,19 @@ export interface UserStoryDataJson {
   scenarios: Record<string, ScenarioDataJson>;
 }
 
+// Test configuration for running tests
+export interface TestConfig {
+  framework: string;           // e.g., 'playwright', 'mocha', 'jest', 'vscode-extension', 'go'
+  runCommand: string;          // Command to run all tests
+  runSingleTestCommand: string; // Command with {testName}, {filePath} placeholders
+  runScenarioCommand: string;   // Command with {scenarioId} placeholder
+  runUserStoryCommand: string;  // Command with {userStoryPattern} placeholder
+}
+
 // JSON-serializable maturity data (for file storage)
 export interface MaturityDataJson {
   lastUpdated: string;
+  testConfig?: TestConfig;
   userStories: Record<string, UserStoryDataJson>;
 }
 
@@ -38,6 +48,7 @@ export interface ScenarioData {
 
 export interface MaturityData {
   lastUpdated?: string;
+  testConfig?: TestConfig;
   userStories: Map<string, {
     overall: MaturityLevel;
     scenarios: Map<string, ScenarioData>;
@@ -97,6 +108,11 @@ export class MaturityManager {
     } else {
       this.cache.clear();
     }
+  }
+
+  getTestConfig(specFilePath: string): TestConfig | undefined {
+    const data = this.getMaturityData(specFilePath);
+    return data.testConfig;
   }
 
   getScenarioMaturity(specFilePath: string, userStoryNumber: number, scenarioId: string): MaturityLevel {
@@ -273,6 +289,7 @@ export class MaturityManager {
   private jsonToMaturityData(json: MaturityDataJson): MaturityData {
     const data: MaturityData = {
       lastUpdated: json.lastUpdated,
+      testConfig: json.testConfig,
       userStories: new Map()
     };
 
@@ -298,6 +315,7 @@ export class MaturityManager {
   private maturityDataToJson(data: MaturityData): MaturityDataJson {
     const json: MaturityDataJson = {
       lastUpdated: new Date().toISOString(),
+      testConfig: data.testConfig,
       userStories: {}
     };
 

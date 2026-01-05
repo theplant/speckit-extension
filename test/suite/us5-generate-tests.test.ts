@@ -26,7 +26,7 @@ suite('US5: Generate Integration Tests via Cascade', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2026-01-05
+  
   test('US5-AS1: Given a user story with acceptance scenarios, When the developer asks Cascade to generate tests, Then Cascade creates integration test files based on the scenarios', async () => {
     // Create a spec file with user stories and acceptance scenarios
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -99,7 +99,7 @@ Users should be able to log in with email and password.
     // and all acceptance scenarios are available for test generation
   });
 
-  // @passed: 2026-01-05
+  
   test('US5-AS2: Given a technology plan exists in the spec directory, When tests are generated, Then they follow the patterns and frameworks specified in the plan', async () => {
     // Create a spec file with technology plan in frontmatter
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -148,7 +148,7 @@ Description.
     // Cascade uses this information to generate tests in the correct format
   });
 
-  // @passed: 2026-01-05
+  
   test('US5-AS3: Given generated tests, When viewing the user story in the tree, Then the tests appear as children under their respective acceptance scenarios', async () => {
     // Create a spec file
     const featureDir = path.join(specsDir, '001-test-feature');
@@ -175,7 +175,7 @@ Description.
     // Create a test file that links to the user story
     const testContent = `import { test } from '@playwright/test';
 
-// @passed: 2026-01-05
+
 test('US1-AS1: Given a user exists, When they log in, Then they see dashboard', async ({ page }) => {
   // Test implementation
   await page.goto('/login');
@@ -219,13 +219,13 @@ test('US1-AS1: Given a user exists, When they log in, Then they see dashboard', 
     // This test verifies the tree structure supports showing tests under scenarios
   });
 
-  // @passed: 2026-01-05
+  
   test('US5-AS4: Given a generated test file, When the developer opens it, Then they can run the tests using VS Code test runner integration', async () => {
     // Create a test file in the standard location
     const testContent = `import { test, expect } from '@playwright/test';
 
 test.describe('US1: User Login', () => {
-  // @passed: 2026-01-05
+  
   test('US1-AS1: Given a registered user, When they enter valid credentials, Then they are logged in', async ({ page }) => {
     await page.goto('/login');
     await page.fill('[name="email"]', 'user@example.com');
@@ -234,7 +234,7 @@ test.describe('US1: User Login', () => {
     await expect(page).toHaveURL('/dashboard');
   });
 
-  // @passed: 2026-01-05
+  
   test('US1-AS2: Given an unregistered email, When they try to log in, Then they see an error message', async ({ page }) => {
     await page.goto('/login');
     await page.fill('[name="email"]', 'unknown@example.com');

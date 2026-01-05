@@ -31,39 +31,30 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
     this.specs = await this.parser.parseAllSpecs(this.workspaceRoot, this.specsDir);
     
     for (const spec of this.specs) {
-      // Read test directory from spec.md metadata (user-configured)
-      const testDirectory = this.metadataManager.getTestDirectory(spec.specFilePath);
+      // Get maturity data which contains test links
+      const maturityData = this.maturityManager.getMaturityData(spec.specFilePath);
       
-      // Only link tests if test directory is configured
-      if (testDirectory) {
-        for (const story of spec.userStories) {
-          const tests = await this.testLinker.findTestsForStory(
-            this.workspaceRoot,
-            testDirectory,
-            spec.name,
-            story.number
-          );
+      for (const story of spec.userStories) {
+        const storyKey = `US${story.number}`;
+        const storyData = maturityData.userStories.get(storyKey);
+        
+        for (const scenario of story.acceptanceScenarios) {
+          scenario.userStory = story;
           
-          for (const scenario of story.acceptanceScenarios) {
-            scenario.userStory = story;
-            
-            scenario.linkedTests = tests.filter(t => {
-              if (t.specAnnotation) {
-                return t.specAnnotation.includes(`US${story.number}-AS${scenario.number}`);
-              }
-              if (t.testName) {
-                const exactMatch = new RegExp(`US${story.number}-AS${scenario.number}\\b`);
-                return exactMatch.test(t.testName);
-              }
-              return false;
+          // Get linked tests from maturity.json
+          const scenarioData = storyData?.scenarios.get(scenario.id);
+          if (scenarioData && scenarioData.tests.length > 0) {
+            scenario.linkedTests = scenarioData.tests.map(testEntry => {
+              // Convert TestEntry to IntegrationTest
+              const absolutePath = path.join(this.workspaceRoot, testEntry.filePath);
+              return {
+                filePath: absolutePath,
+                fileName: path.basename(testEntry.filePath),
+                testName: testEntry.testName,
+                line: this.findTestLineByName(absolutePath, testEntry.testName)
+              } as IntegrationTest;
             });
-          }
-        }
-      } else {
-        // No test directory configured - just set parent references
-        for (const story of spec.userStories) {
-          for (const scenario of story.acceptanceScenarios) {
-            scenario.userStory = story;
+          } else {
             scenario.linkedTests = [];
           }
         }
@@ -71,6 +62,29 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
     }
     
     this._onDidChangeTreeData.fire();
+  }
+
+  // Find the line number of a test by its name in the file
+  private findTestLineByName(filePath: string, testName: string): number | undefined {
+    try {
+      const fs = require('fs');
+      if (!fs.existsSync(filePath)) return undefined;
+      
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n');
+      
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes(`test('${testName}'`) || 
+            lines[i].includes(`test("${testName}"`) ||
+            lines[i].includes(`test(\`${testName}\``) ||
+            lines[i].includes(testName.substring(0, 50))) {
+          return i + 1; // 1-indexed line number
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+    return undefined;
   }
 
   getMetadataManager(): SpecMetadataManager {

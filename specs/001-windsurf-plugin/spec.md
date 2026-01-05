@@ -208,6 +208,13 @@ A developer can see the test maturity level for each user story and acceptance s
 ```json
 {
   "lastUpdated": "2024-12-30T12:00:00Z",
+  "testConfig": {
+    "framework": "mocha",
+    "runCommand": "pnpm test",
+    "runSingleTestCommand": "SPECKIT_TEST_GREP=\"{testName}\" pnpm test",
+    "runScenarioCommand": "SPECKIT_TEST_GREP=\"{scenarioId}\" pnpm test",
+    "runUserStoryCommand": "SPECKIT_TEST_GREP=\"{userStoryPattern}\" pnpm test"
+  },
   "userStories": {
     "US1": {
       "overall": "partial",
@@ -232,6 +239,24 @@ A developer can see the test maturity level for each user story and acceptance s
   }
 }
 ```
+
+**Test Configuration** (`testConfig` in maturity.json):
+The AI analyzes the project during initial maturity.json creation to detect the test framework and generate appropriate run commands:
+
+| Framework | Detection | Example Run Command |
+|-----------|-----------|---------------------|
+| Playwright | `@playwright/test` in package.json | `npx playwright test "{filePath}" --grep "{testName}"` |
+| VS Code Extension | `@vscode/test-electron` in package.json | `SPECKIT_TEST_GREP="{testName}" pnpm test` |
+| Mocha | `mocha` in package.json | `npx mocha --grep "{testName}" "{filePath}"` |
+| Jest | `jest` in package.json | `npx jest "{filePath}" -t "{testName}"` |
+| Go | `_test.go` file extension | `go test -v -run "{testName}" ./{testDir}` |
+
+**Command Placeholders**:
+- `{testName}` - The full test name (escaped for shell)
+- `{filePath}` - Relative path to the test file
+- `{scenarioId}` - The scenario ID (e.g., `US1-AS1`)
+- `{userStoryPattern}` - Pattern to match all tests for a user story (e.g., `US1-`)
+- `{testDir}` - Directory containing the test file
 
 **Key Design Decisions**:
 - **Test names instead of line numbers**: Line numbers are fragile and change when code is edited. Test names are stable identifiers.
