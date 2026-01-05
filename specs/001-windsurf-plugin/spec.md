@@ -50,10 +50,11 @@ When a developer clicks on a user story, the spec.md opens in the center editor 
 
 1. **Given** a user story with linked integration tests, **When** the developer clicks on it in the tree, **Then** the spec.md opens in the left editor and the test file opens in the right editor (split view)
 2. **Given** the split view is open, **When** the developer clicks on an acceptance scenario, **Then** the spec editor scrolls to that scenario and the test editor scrolls to the corresponding test
-3. **Given** a user story without linked tests, **When** the developer clicks on it, **Then** only the spec.md opens (no split view)
+3. **Given** a user story without linked tests, **When** the developer clicks on it, **Then** only the spec.md opens and any open secondary test editor is closed
 4. **Given** the split view is open, **When** the developer edits either file, **Then** changes are saved using Windsurf's native editor capabilities
 5. **Given** the test editor is open, **When** the developer views it, **Then** they see the full test file content with syntax highlighting
 6. **Given** an integration test in the tree (under an acceptance scenario), **When** the developer clicks on it, **Then** the spec.md opens in the left editor scrolled to the parent acceptance scenario, and the test file opens in the right editor scrolled to the test
+7. **Given** an acceptance scenario without linked tests, **When** the developer clicks on it, **Then** only the spec.md opens scrolled to that scenario and any open secondary test editor is closed
 
 ---
 
@@ -147,6 +148,25 @@ A developer selects a user story and asks Cascade to build the implementation. C
 
 ---
 
+### User Story 9 - Run Single Test from Tree View (Priority: P1)
+
+A developer can run a single integration test directly from the tree view by clicking a "Run Test" button on a test item. The test runs in a terminal with the appropriate test framework command, allowing quick verification of individual tests without leaving the IDE.
+
+**Why this priority**: Running individual tests is essential for efficient test-driven development. Developers need to quickly verify specific tests without running the entire test suite.
+
+**Independent Test**: Can be tested by clicking the Run Test button on a test item and verifying the test executes in a terminal.
+
+**Acceptance Scenarios**:
+
+1. **Given** a test item in the tree view, **When** the developer clicks the "Run Test" button (play icon), **Then** a terminal opens and runs that specific test
+2. **Given** a Playwright test file (.spec.ts), **When** running the test, **Then** the command uses `npx playwright test` with `--grep` for the specific test name
+3. **Given** a Mocha/Jest test file (.test.ts), **When** running the test, **Then** the command uses `npx mocha --grep` for the specific test name
+4. **Given** a Go test file (_test.go), **When** running the test, **Then** the command uses `go test -v -run` for the specific test name
+5. **Given** a test without a specific test name, **When** running the test, **Then** the entire test file is executed
+6. **Given** the test is running, **When** it completes, **Then** the developer sees the test output in the terminal
+
+---
+
 ### User Story 8 - Test Maturity Level Tracking (Priority: P1)
 
 A developer can see the test maturity level for each user story and acceptance scenario in the tree view, indicated by visual icons. The maturity levels are stored in a `maturity.md` file alongside `spec.md`. The extension also tracks test pass status via specific comments in test files.
@@ -233,6 +253,7 @@ lastUpdated: 2024-12-30T...
 - **FR-013**: Plugin MUST parse `@passed` and `@failed` comments in test files to display execution status in the tree view
 - **FR-014**: Plugin MUST provide outline view integration for spec file structure (via VS Code's native markdown support)
 - **FR-015**: Plugin MUST persist user preferences (last opened spec, last selected item) in workspace state
+- **FR-016**: Plugin MUST provide a "Run Test" action on test items in the tree view that executes the test in a terminal using the appropriate test framework
 
 ### Key Entities
 

@@ -48,8 +48,14 @@ export function activate(context: vscode.ExtensionContext) {
       
       const story = item.data as UserStory;
       const config = vscode.workspace.getConfiguration('speckit');
-      const testsDir = config.get<string>('testsDirectory', 'tests/e2e');
       const autoOpen = config.get<boolean>('autoOpenSplitView', true);
+      
+      // Get test directory from spec.md metadata first, fall back to config
+      const metadataManager = treeProvider.getMetadataManager();
+      let testsDir = metadataManager.getTestDirectory(item.filePath);
+      if (!testsDir) {
+        testsDir = config.get<string>('testsDirectory', 'tests/e2e');
+      }
       
       await stateManager.setLastOpenedSpec(item.filePath);
       await stateManager.setLastSelectedItem(`${item.type}:${item.filePath}:${item.line}`);
@@ -59,6 +65,8 @@ export function activate(context: vscode.ExtensionContext) {
       if (testFile && autoOpen) {
         await editorController.openSplitView(item.filePath, testFile, story.startLine);
       } else {
+        // Close secondary editor if no test file exists
+        await editorController.closeSecondaryEditor();
         await editorController.openSpecAtLine(item.filePath, story.startLine);
         if (testFile && !autoOpen) {
            // If tests exist but autoOpen is off, we don't show a message unless they specifically clicked "Open with Tests" from a menu (though here it's the default click)
@@ -153,7 +161,45 @@ export function activate(context: vscode.ExtensionContext) {
       if (!item || item.type !== 'scenario') return;
       
       const scenario = item.data as AcceptanceScenario;
-      await editorController.openSpecAtLine(item.filePath, scenario.line);
+      const config = vscode.workspace.getConfiguration('speckit');
+      const autoOpen = config.get<boolean>('autoOpenSplitView', true);
+      
+      // Get test directory from spec.md metadata first, fall back to config
+      const metadataManager = treeProvider.getMetadataManager();
+      let testsDir = metadataManager.getTestDirectory(item.filePath);
+      if (!testsDir) {
+        testsDir = config.get<string>('testsDirectory', 'tests/e2e');
+      }
+      
+      // Find linked tests for this scenario
+      if (scenario.linkedTests && scenario.linkedTests.length > 0 && autoOpen) {
+        // Open split view with spec scrolled to scenario and test scrolled to test line
+        const test = scenario.linkedTests[0];
+        await editorController.openSplitView(item.filePath, test.filePath, scenario.line, test.line);
+      } else if (scenario.userStory && autoOpen) {
+        // Try to find test for the parent user story's scenario
+        const featureName = item.filePath.split('/specs/')[1]?.split('/')[0]?.replace(/^\d+-/, '') || 'feature';
+        const tests = await testLinker.findTestsForScenario(
+          workspaceRoot,
+          testsDir,
+          featureName,
+          scenario.userStory.number,
+          parseInt(scenario.id.replace(/.*AS/, '')) || 1
+        );
+        
+        if (tests.length > 0) {
+          const test = tests[0];
+          await editorController.openSplitView(item.filePath, test.filePath, scenario.line, test.line);
+        } else {
+          // No linked test found, close secondary editor and just open spec
+          await editorController.closeSecondaryEditor();
+          await editorController.openSpecAtLine(item.filePath, scenario.line);
+        }
+      } else {
+        // Close secondary editor when no test available
+        await editorController.closeSecondaryEditor();
+        await editorController.openSpecAtLine(item.filePath, scenario.line);
+      }
     }),
 
     vscode.commands.registerCommand('speckit.goToTest', async (item: SpecTreeItem) => {
@@ -441,6 +487,114 @@ ${maturityExampleSection}
       };
       
       await expandRecursively(item);
+    }),
+
+    // Run a single test from the tree view
+    vscode.commands.registerCommand('speckit.runTest', async (item: SpecTreeItem) => {
+      if (!item || item.type !== 'test') return;
+      
+      const test = item.data as IntegrationTest;
+      if (!test.filePath) {
+        vscode.window.showErrorMessage('No test file path available');
+        return;
+      }
+
+      // Extract test name for grep pattern
+      const testName = test.testName || '';
+      const relativePath = path.relative(workspaceRoot, test.filePath);
+      
+      // Create terminal and run the test
+      const terminal = vscode.window.createTerminal({
+        name: `SpecKit: Run Test`,
+        cwd: workspaceRoot
+      });
+      terminal.show();
+
+      // Detect test framework from file extension and project configuration
+      const ext = path.extname(test.filePath);
+      let command: string;
+      
+      // Check for package.json to detect test framework
+      const packageJsonPath = path.join(workspaceRoot, 'package.json');
+      let hasPlaywright = false;
+      let hasMocha = false;
+      let hasJest = false;
+      let testScript = '';
+      
+      try {
+        const packageJson = JSON.parse(require('fs').readFileSync(packageJsonPath, 'utf-8'));
+        const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
+        hasPlaywright = !!deps['@playwright/test'] || !!deps['playwright'];
+        hasMocha = !!deps['mocha'];
+        hasJest = !!deps['jest'];
+        testScript = packageJson.scripts?.test || '';
+      } catch {
+        // No package.json or can't parse it
+      }
+      
+      if (ext === '.ts' || ext === '.js') {
+        // Check if it's a Playwright test or Mocha test
+        if (test.filePath.includes('.spec.ts') || test.filePath.includes('.spec.js')) {
+          if (hasPlaywright) {
+            // Use Playwright
+            if (testName) {
+              command = `npx playwright test "${relativePath}" --grep "${testName.replace(/"/g, '\\"')}"`;
+            } else {
+              command = `npx playwright test "${relativePath}"`;
+            }
+          } else {
+            // Fallback to running the project's test script with grep
+            command = `pnpm test`;
+            vscode.window.showInformationMessage('Running full test suite (Playwright not detected)');
+          }
+        } else if (test.filePath.includes('.test.ts') || test.filePath.includes('.test.js')) {
+          // For .test.ts files, check if it's a VS Code extension test
+          if (testScript.includes('runTest') || testScript.includes('vscode')) {
+            // VS Code extension tests - use SPECKIT_TEST_GREP env var to filter
+            if (testName) {
+              // Escape special regex characters in test name
+              const escapedTestName = testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              command = `SPECKIT_TEST_GREP="${escapedTestName}" pnpm test`;
+            } else {
+              command = `pnpm test`;
+            }
+          } else if (hasMocha) {
+            // Regular Mocha tests
+            if (testName) {
+              command = `npx mocha --grep "${testName.replace(/"/g, '\\"')}" "${relativePath}"`;
+            } else {
+              command = `npx mocha "${relativePath}"`;
+            }
+          } else if (hasJest) {
+            // Jest tests
+            if (testName) {
+              command = `npx jest "${relativePath}" -t "${testName.replace(/"/g, '\\"')}"`;
+            } else {
+              command = `npx jest "${relativePath}"`;
+            }
+          } else {
+            // Fallback to project's test script
+            command = `pnpm test`;
+          }
+        } else {
+          // Default to running the file directly
+          command = `npx ts-node "${relativePath}"`;
+        }
+      } else if (ext === '.go') {
+        // Go test
+        const testDir = path.dirname(relativePath);
+        if (testName) {
+          command = `go test -v -run "${testName}" ./${testDir}`;
+        } else {
+          command = `go test -v ./${testDir}`;
+        }
+      } else {
+        // Generic - just try to run with node
+        command = `node "${relativePath}"`;
+      }
+
+      terminal.sendText(command);
+      vscode.window.showInformationMessage(`Running test: ${testName || relativePath}`);
     })
   );
 

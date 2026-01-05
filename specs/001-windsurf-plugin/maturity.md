@@ -1,5 +1,5 @@
 ---
-lastUpdated: 2026-01-05
+lastUpdated: 2026-01-05T16:20:00Z
 ---
 # Test Maturity Levels
 
@@ -20,6 +20,7 @@ lastUpdated: 2026-01-05
 - **US2-AS4**: complete
 - **US2-AS5**: complete
 - **US2-AS6**: complete
+- **US2-AS7**: complete
 
 ## US3
 - **Overall**: complete
@@ -73,3 +74,12 @@ lastUpdated: 2026-01-05
 - **US8-AS10**: complete
 - **US8-AS11**: complete
 - **US8-AS12**: complete
+
+## US9
+- **Overall**: complete
+- **US9-AS1**: complete
+- **US9-AS2**: complete
+- **US9-AS3**: complete
+- **US9-AS4**: complete
+- **US9-AS5**: complete
+- **US9-AS6**: complete

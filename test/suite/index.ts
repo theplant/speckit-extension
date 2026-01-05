@@ -3,10 +3,14 @@ import Mocha from 'mocha';
 import { glob } from 'glob';
 
 export async function run(): Promise<void> {
+  // Support filtering tests via SPECKIT_TEST_GREP environment variable
+  const grepPattern = process.env.SPECKIT_TEST_GREP;
+  
   const mocha = new Mocha({
     ui: 'tdd',
     color: true,
-    timeout: 60000
+    timeout: 60000,
+    grep: grepPattern ? new RegExp(grepPattern) : undefined
   });
 
   const testsRoot = path.resolve(__dirname, '..');

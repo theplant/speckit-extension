@@ -31,7 +31,7 @@ suite('US2: Split View with Spec and Integration Tests', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  // @passed: 2026-01-02
+  // @passed: 2026-01-05
   test('US2-AS1: Given a user story with linked tests, When clicking it, Then spec opens left and test opens right (split view)', async () => {
     // Get the actual workspace root that VS Code sees
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -81,44 +81,47 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     const testPath = path.join(testTestsDir, testFileName);
     fs.writeFileSync(testPath, testContent);
 
-    // Create and activate the extension
-    const { activate } = require('../../src/extension');
-    const mockContext = {
-      subscriptions: [],
-      workspaceState: {
-        get: () => undefined,
-        update: () => Promise.resolve()
-      },
-      globalState: {
-        get: () => undefined,
-        update: () => Promise.resolve()
-      },
-      extensionPath: '',
-      storagePath: '',
-      globalStoragePath: '',
-      logPath: '',
-      extensionUri: vscode.Uri.file(''),
-      logUri: vscode.Uri.file(''),
-      globalStorageUri: vscode.Uri.file(''),
-      storageUri: vscode.Uri.file(''),
-      environmentVariableCollection: {
-        persistent: true,
-        get: () => undefined,
-        set: () => {},
-        delete: () => {},
-        clear: () => {}
-      },
-      secrets: {
-        get: () => undefined,
-        store: () => Promise.resolve(),
-        delete: () => Promise.resolve()
-      },
-      extensionMode: 1,
-      asAbsolutePath: (relativePath: string) => path.join('', relativePath)
-    } as any;
-    
-    // Activate the extension
-    activate(mockContext);
+    // Check if extension is already activated before activating
+    const existingCommands = await vscode.commands.getCommands();
+    if (!existingCommands.includes('speckit.refreshSpecs')) {
+      const { activate } = require('../../src/extension');
+      const mockContext = {
+        subscriptions: [],
+        workspaceState: {
+          get: () => undefined,
+          update: () => Promise.resolve()
+        },
+        globalState: {
+          get: () => undefined,
+          update: () => Promise.resolve()
+        },
+        extensionPath: '',
+        storagePath: '',
+        globalStoragePath: '',
+        logPath: '',
+        extensionUri: vscode.Uri.file(''),
+        logUri: vscode.Uri.file(''),
+        globalStorageUri: vscode.Uri.file(''),
+        storageUri: vscode.Uri.file(''),
+        environmentVariableCollection: {
+          persistent: true,
+          get: () => undefined,
+          set: () => {},
+          delete: () => {},
+          clear: () => {}
+        },
+        secrets: {
+          get: () => undefined,
+          store: () => Promise.resolve(),
+          delete: () => Promise.resolve()
+        },
+        extensionMode: 1,
+        asAbsolutePath: (relativePath: string) => path.join('', relativePath)
+      } as any;
+      
+      // Activate the extension
+      activate(mockContext);
+    }
     
     // Create a SpecTreeItem for the user story
     const { SpecTreeItem } = require('../../src/types');
@@ -185,7 +188,7 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     fs.rmSync(testPath, { force: true });
   });
 
-  // @passed: 2025-12-30
+  // @passed: 2026-01-05
   test('US2-AS2: Given split view is open, When clicking acceptance scenario, Then both editors scroll to corresponding locations', async () => {
     // Create spec file with multiple scenarios
     const featureDir = path.join(specsDir, '001-test-feature');

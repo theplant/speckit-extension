@@ -83,6 +83,12 @@
         "title": "Expand All",
         "icon": "$(expand-all)",
         "category": "SpecKit"
+      },
+      {
+        "command": "speckit.runTest",
+        "title": "Run Test",
+        "icon": "$(play)",
+        "category": "SpecKit"
       }
     ],
     "menus": {
@@ -108,6 +114,11 @@
           "command": "speckit.expandAll",
           "when": "view == speckit.specsView && (viewItem == feature || viewItem == userStory)",
           "group": "inline@2"
+        },
+        {
+          "command": "speckit.runTest",
+          "when": "view == speckit.specsView && viewItem == test",
+          "group": "inline@3"
         }
       ]
     },

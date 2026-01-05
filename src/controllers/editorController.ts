@@ -52,4 +52,19 @@ export class EditorController {
   async openFileAtLine(filePath: string, line?: number): Promise<vscode.TextEditor> {
     return this.openSpecAtLine(filePath, line);
   }
+
+  async closeSecondaryEditor(): Promise<void> {
+    // Close any editor in ViewColumn.Two (the secondary/right panel)
+    const editorsInColumnTwo = vscode.window.visibleTextEditors.filter(
+      editor => editor.viewColumn === vscode.ViewColumn.Two
+    );
+    
+    for (const editor of editorsInColumnTwo) {
+      await vscode.window.showTextDocument(editor.document, {
+        viewColumn: vscode.ViewColumn.Two,
+        preserveFocus: false
+      });
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    }
+  }
 }

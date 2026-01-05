@@ -92,6 +92,12 @@ export class SpecTreeItem extends vscode.TreeItem {
           title: 'Open with Tests',
           arguments: [this]
         };
+      } else if (type === 'scenario') {
+        this.command = {
+          command: 'speckit.goToScenario',
+          title: 'Open Scenario with Test',
+          arguments: [this]
+        };
       } else {
         this.command = {
           command: 'speckit.openSpec',
