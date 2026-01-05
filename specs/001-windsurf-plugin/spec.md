@@ -163,6 +163,10 @@ A developer can run a single integration test directly from the tree view by cli
 6. **Given** the test is running, **When** it completes, **Then** the developer sees the test output in the terminal
 7. **Given** no `maturity.json` file exists for the spec, **When** the developer clicks "Run Test" on any item (test, scenario, or user story), **Then** AI instructions are copied to clipboard to initialize `maturity.json` with ALL user stories from the spec (not just the clicked item), including a task list for AI to run and match tests to all scenarios
 8. **Given** the Run Test button is clicked on a test node, **When** the test config is retrieved, **Then** it uses the same logic as user story and scenario levels (retrieves config from the parent spec's maturity.json)
+9. **Given** a test runs and completes successfully (exit code 0), **When** the terminal closes or test finishes, **Then** maturity.json is automatically updated with `status: "pass"` and `lastRun` timestamp for that test
+10. **Given** a test runs and fails (non-zero exit code), **When** the terminal closes or test finishes, **Then** maturity.json is automatically updated with `status: "fail"` and `lastRun` timestamp for that test
+11. **Given** a user story's Run Test is clicked, **When** all scenario tests pass, **Then** the user story's `overall` maturity level is recalculated based on all scenario results
+12. **Given** a scenario's Run Test is clicked, **When** the test passes, **Then** the scenario's maturity `level` is updated to "complete" if it was previously "none" or "partial"
 
 ---
 

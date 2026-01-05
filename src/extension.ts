@@ -390,13 +390,74 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       
-      // Create terminal and run the test
-      const terminal = vscode.window.createTerminal({
-        name: `SpecKit: Run Test`,
+      // Create and run a VS Code Task to capture exit code
+      const taskDefinition: vscode.TaskDefinition = {
+        type: 'speckit-test'
+      };
+      
+      const shellExecution = new vscode.ShellExecution(command, {
         cwd: workspaceRoot
       });
-      terminal.show();
-      terminal.sendText(command);
+      
+      const task = new vscode.Task(
+        taskDefinition,
+        vscode.TaskScope.Workspace,
+        `SpecKit: ${displayName}`,
+        'speckit',
+        shellExecution,
+        [] // No problem matchers
+      );
+      task.presentationOptions = {
+        reveal: vscode.TaskRevealKind.Always,
+        panel: vscode.TaskPanelKind.New,
+        focus: true
+      };
+
+      // Store context for the task completion handler
+      const taskContext = {
+        specPath,
+        itemType: item.type,
+        testName: item.type === 'test' ? (item.data as IntegrationTest).testName : undefined,
+        scenarioId: item.type === 'scenario' ? (item.data as AcceptanceScenario).id : undefined,
+        userStoryNumber: item.type === 'userStory' ? (item.data as UserStory).number : undefined
+      };
+
+      // Execute the task
+      const execution = await vscode.tasks.executeTask(task);
+      
+      // Listen for task completion to update maturity.json
+      const disposable = vscode.tasks.onDidEndTaskProcess(async (e) => {
+        if (e.execution === execution) {
+          const exitCode = e.exitCode;
+          const passed = exitCode === 0;
+          
+          // Update maturity.json based on test result
+          if (taskContext.itemType === 'test' && taskContext.testName) {
+            maturityManager.updateTestResult(taskContext.specPath, taskContext.testName, passed);
+          } else if (taskContext.itemType === 'scenario' && taskContext.scenarioId) {
+            maturityManager.updateScenarioResult(taskContext.specPath, taskContext.scenarioId, passed);
+          } else if (taskContext.itemType === 'userStory' && taskContext.userStoryNumber) {
+            maturityManager.updateUserStoryResult(taskContext.specPath, taskContext.userStoryNumber, passed);
+          }
+          
+          // Refresh tree view to show updated maturity
+          treeProvider.refresh();
+          
+          // Show result message
+          if (passed) {
+            vscode.window.showInformationMessage(`✅ Test passed: ${displayName}`);
+          } else {
+            vscode.window.showWarningMessage(`❌ Test failed: ${displayName}`);
+          }
+          
+          // Clean up the listener
+          disposable.dispose();
+        }
+      });
+      
+      // Add disposable to context for cleanup
+      context.subscriptions.push(disposable);
+      
       vscode.window.showInformationMessage(`Running test: ${displayName}`);
     })
   );

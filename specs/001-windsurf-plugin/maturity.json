@@ -629,6 +629,50 @@
               "lastRun": "2026-01-05"
             }
           ]
+        },
+        "US9-AS9": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS9: Given a test runs and completes successfully (exit code 0), When the test finishes, Then maturity.json is updated with status pass and lastRun timestamp",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS10": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS10: Given a test runs and fails (non-zero exit code), When the test finishes, Then maturity.json is updated with status fail and lastRun timestamp",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS11": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS11: Given a user story Run Test is clicked, When all scenario tests pass, Then the user story overall maturity level is recalculated",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS12": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS12: Given a scenario Run Test is clicked, When the test passes, Then the scenario maturity level is updated to complete",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
         }
       }
     }

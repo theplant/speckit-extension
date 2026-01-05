@@ -252,6 +252,118 @@ export class MaturityManager {
     }
   }
 
+  /**
+   * Update test result after running a test and recalculate maturity levels
+   * @param specFilePath Path to the spec.md file
+   * @param testName The test name that was run
+   * @param passed Whether the test passed (exit code 0)
+   */
+  updateTestResult(specFilePath: string, testName: string, passed: boolean): void {
+    const data = this.getMaturityData(specFilePath);
+    const status: TestStatus = passed ? 'pass' : 'fail';
+    const today = new Date().toISOString().split('T')[0];
+    let updated = false;
+
+    // Find the test by name across all user stories and scenarios
+    for (const [storyKey, story] of data.userStories) {
+      for (const [scenarioId, scenarioData] of story.scenarios) {
+        for (const test of scenarioData.tests) {
+          if (test.testName === testName || testName.includes(scenarioId)) {
+            test.status = status;
+            test.lastRun = today;
+            updated = true;
+
+            // If test passed, update scenario level to complete
+            if (passed && scenarioData.level !== 'complete') {
+              scenarioData.level = 'complete';
+            }
+          }
+        }
+      }
+
+      // Recalculate overall level for the user story
+      story.overall = this.calculateOverallLevel(story.scenarios);
+    }
+
+    if (updated) {
+      data.lastUpdated = new Date().toISOString();
+      this.writeMaturityFile(specFilePath, data);
+    }
+  }
+
+  /**
+   * Update all tests for a scenario after running scenario tests
+   * @param specFilePath Path to the spec.md file
+   * @param scenarioId The scenario ID (e.g., "US1-AS1")
+   * @param passed Whether all tests passed
+   */
+  updateScenarioResult(specFilePath: string, scenarioId: string, passed: boolean): void {
+    const data = this.getMaturityData(specFilePath);
+    const status: TestStatus = passed ? 'pass' : 'fail';
+    const today = new Date().toISOString().split('T')[0];
+
+    // Extract user story number from scenario ID (e.g., "US1-AS1" -> 1)
+    const match = scenarioId.match(/US(\d+)/i);
+    if (!match) return;
+
+    const storyKey = `US${match[1]}`;
+    const story = data.userStories.get(storyKey);
+    if (!story) return;
+
+    const scenarioData = story.scenarios.get(scenarioId);
+    if (!scenarioData) return;
+
+    // Update all tests in this scenario
+    for (const test of scenarioData.tests) {
+      test.status = status;
+      test.lastRun = today;
+    }
+
+    // Update scenario level
+    if (passed) {
+      scenarioData.level = 'complete';
+    }
+
+    // Recalculate overall level
+    story.overall = this.calculateOverallLevel(story.scenarios);
+    data.lastUpdated = new Date().toISOString();
+    this.writeMaturityFile(specFilePath, data);
+  }
+
+  /**
+   * Update all tests for a user story after running user story tests
+   * @param specFilePath Path to the spec.md file
+   * @param userStoryNumber The user story number
+   * @param passed Whether all tests passed
+   */
+  updateUserStoryResult(specFilePath: string, userStoryNumber: number, passed: boolean): void {
+    const data = this.getMaturityData(specFilePath);
+    const status: TestStatus = passed ? 'pass' : 'fail';
+    const today = new Date().toISOString().split('T')[0];
+
+    const storyKey = `US${userStoryNumber}`;
+    const story = data.userStories.get(storyKey);
+    if (!story) return;
+
+    // Update all tests in all scenarios
+    for (const [scenarioId, scenarioData] of story.scenarios) {
+      for (const test of scenarioData.tests) {
+        test.status = status;
+        test.lastRun = today;
+      }
+
+      // Update scenario level if passed
+      if (passed) {
+        scenarioData.level = 'complete';
+      }
+    }
+
+    // Recalculate overall level
+    story.overall = this.calculateOverallLevel(story.scenarios);
+    data.lastUpdated = new Date().toISOString();
+    this.writeMaturityFile(specFilePath, data);
+  }
+
   private calculateOverallLevel(scenarios: Map<string, ScenarioData>): MaturityLevel {
     const levels: MaturityLevel[] = ['none', 'partial', 'complete'];
     let lowestIndex = levels.length - 1;
