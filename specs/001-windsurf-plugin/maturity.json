@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-01-05T12:00:00.000Z",
+  "lastUpdated": "2026-01-05T12:30:02.123Z",
   "testConfig": {
     "framework": "vscode-extension",
     "runCommand": "pnpm test",
@@ -416,6 +416,39 @@
             }
           ]
         },
+        "US8-AS10": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS10: Given a test passes, When recorded in maturity.json, Then complete status with checkmark is supported",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS11": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS11: Given AI runs test and it passes, Then AI updates maturity.json with pass status",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US8-AS12": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us8-maturity.test.ts",
+              "testName": "US8-AS12: Given test status in maturity.json is pass, When viewing tree, Then test shows pass icon",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
         "US8-AS2": {
           "level": "complete",
           "tests": [
@@ -503,39 +536,6 @@
               "lastRun": "2026-01-05"
             }
           ]
-        },
-        "US8-AS10": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us8-maturity.test.ts",
-              "testName": "US8-AS10: Given a test passes, When recorded in maturity.json, Then complete status with checkmark is supported",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
-        },
-        "US8-AS11": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us8-maturity.test.ts",
-              "testName": "US8-AS11: Given AI runs test and it passes, Then AI updates maturity.json with pass status",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
-        },
-        "US8-AS12": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us8-maturity.test.ts",
-              "testName": "US8-AS12: Given test status in maturity.json is pass, When viewing tree, Then test shows pass icon",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
         }
       }
     },
@@ -548,6 +548,39 @@
             {
               "filePath": "test/suite/us9-run-test.test.ts",
               "testName": "US9-AS1: Given a test item in the tree view, When the developer clicks the Run Test button, Then a terminal opens and runs that specific test",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS10": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS10: Given a test runs and fails (non-zero exit code), When the test finishes, Then maturity.json is updated with status fail and lastRun timestamp",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS11": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS11: Given a user story Run Test is clicked, When all scenario tests pass, Then the user story overall maturity level is recalculated",
+              "status": "pass",
+              "lastRun": "2026-01-05"
+            }
+          ]
+        },
+        "US9-AS12": {
+          "level": "complete",
+          "tests": [
+            {
+              "filePath": "test/suite/us9-run-test.test.ts",
+              "testName": "US9-AS12: Given a scenario Run Test is clicked, When the test passes, Then the scenario maturity level is updated to complete",
               "status": "pass",
               "lastRun": "2026-01-05"
             }
@@ -636,39 +669,6 @@
             {
               "filePath": "test/suite/us9-run-test.test.ts",
               "testName": "US9-AS9: Given a test runs and completes successfully (exit code 0), When the test finishes, Then maturity.json is updated with status pass and lastRun timestamp",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
-        },
-        "US9-AS10": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us9-run-test.test.ts",
-              "testName": "US9-AS10: Given a test runs and fails (non-zero exit code), When the test finishes, Then maturity.json is updated with status fail and lastRun timestamp",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
-        },
-        "US9-AS11": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us9-run-test.test.ts",
-              "testName": "US9-AS11: Given a user story Run Test is clicked, When all scenario tests pass, Then the user story overall maturity level is recalculated",
-              "status": "pass",
-              "lastRun": "2026-01-05"
-            }
-          ]
-        },
-        "US9-AS12": {
-          "level": "complete",
-          "tests": [
-            {
-              "filePath": "test/suite/us9-run-test.test.ts",
-              "testName": "US9-AS12: Given a scenario Run Test is clicked, When the test passes, Then the scenario maturity level is updated to complete",
               "status": "pass",
               "lastRun": "2026-01-05"
             }
