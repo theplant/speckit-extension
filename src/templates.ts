@@ -46,7 +46,8 @@ export const TEST_CONFIG_EXAMPLES_TABLE = `| Framework | testConfig Example |
 | VS Code Extension | \`{"framework": "vscode-extension", "runCommand": "pnpm test", "runSingleTestCommand": "SPECKIT_TEST_GREP=\\"{testName}\\" pnpm test", "runScenarioCommand": "SPECKIT_TEST_GREP=\\"{scenarioId}\\" pnpm test", "runUserStoryCommand": "SPECKIT_TEST_GREP=\\"{userStoryPattern}\\" pnpm test"}\` |
 | Mocha | \`{"framework": "mocha", "runCommand": "npx mocha", "runSingleTestCommand": "npx mocha --grep \\"{testName}\\" \\"{filePath}\\"", "runScenarioCommand": "npx mocha --grep \\"{scenarioId}\\"", "runUserStoryCommand": "npx mocha --grep \\"{userStoryPattern}\\""}\` |
 | Jest | \`{"framework": "jest", "runCommand": "npx jest", "runSingleTestCommand": "npx jest \\"{filePath}\\" -t \\"{testName}\\"", "runScenarioCommand": "npx jest -t \\"{scenarioId}\\"", "runUserStoryCommand": "npx jest -t \\"{userStoryPattern}\\""}\` |
-| Go | \`{"framework": "go", "runCommand": "go test ./...", "runSingleTestCommand": "go test -v -run \\"{testName}\\" ./{testDir}", "runScenarioCommand": "go test -v -run \\"{scenarioId}\\" ./...", "runUserStoryCommand": "go test -v -run \\"{userStoryPattern}\\" ./..."}\` |`;
+| Go | \`{"framework": "go", "runCommand": "go test ./...", "runSingleTestCommand": "go test -v -run \\"{testName}\\" ./{testDir}", "runScenarioCommand": "go test -v -run \\"{scenarioId}\\" ./...", "runUserStoryCommand": "go test -v -run \\"{userStoryPattern}\\" ./..."}\` |
+| Go (with build tags) | \`{"framework": "go", "runCommand": "go test -tags=integration ./...", "runSingleTestCommand": "go test -tags=integration -v -run \\"{testName}\\" ./{testDir}", "runScenarioCommand": "go test -tags=integration -v -run \\"{scenarioId}\\" ./...", "runUserStoryCommand": "go test -tags=integration -v -run \\"{userStoryPattern}\\" ./..."}\` |`;
 
 /**
  * Generate the maturity.json initialization instructions
