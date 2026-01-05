@@ -83,6 +83,11 @@ export class MaturityManager {
     return path.join(dir, 'maturity.json');
   }
 
+  hasMaturityFile(specFilePath: string): boolean {
+    const maturityPath = this.getMaturityFilePath(specFilePath);
+    return fs.existsSync(maturityPath);
+  }
+
   // Also check for legacy maturity.md file
   getLegacyMaturityFilePath(specFilePath: string): string {
     const dir = path.dirname(specFilePath);

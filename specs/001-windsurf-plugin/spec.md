@@ -161,6 +161,8 @@ A developer can run a single integration test directly from the tree view by cli
 4. **Given** a Go test file (_test.go), **When** running the test, **Then** the command uses `go test -v -run` for the specific test name
 5. **Given** a test without a specific test name, **When** running the test, **Then** the entire test file is executed
 6. **Given** the test is running, **When** it completes, **Then** the developer sees the test output in the terminal
+7. **Given** no `maturity.json` file exists for the spec, **When** the developer clicks "Run Test" on any item (test, scenario, or user story), **Then** AI instructions are copied to clipboard to initialize `maturity.json` with ALL user stories from the spec (not just the clicked item), including a task list for AI to run and match tests to all scenarios
+8. **Given** the Run Test button is clicked on a test node, **When** the test config is retrieved, **Then** it uses the same logic as user story and scenario levels (retrieves config from the parent spec's maturity.json)
 
 ---
 

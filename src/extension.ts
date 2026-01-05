@@ -6,6 +6,7 @@ import { EditorController } from './controllers/editorController';
 import { StateManager } from './state/stateManager';
 import { TestLinker } from './linkers/testLinker';
 import { SpecTreeItem, UserStory, AcceptanceScenario, IntegrationTest, FeatureSpec } from './types';
+import { generateMaturityJsonInstructions, generateFeatureTemplate, generateUserStoryTemplate, generateScenarioTemplate } from './templates';
 
 let treeProvider: SpecTreeProvider;
 let editorController: EditorController;
@@ -196,7 +197,6 @@ export function activate(context: vscode.ExtensionContext) {
 
       const metadataManager = treeProvider.getMetadataManager();
       const maturityManager = treeProvider.getMaturityManager();
-      const workspaceRoot = treeProvider.getWorkspaceRoot();
       
       // Get test directory from spec.md metadata (optional, for context)
       const testDirectory = metadataManager.getTestDirectory(item.filePath) || 'test';
@@ -212,264 +212,61 @@ export function activate(context: vscode.ExtensionContext) {
       const today = new Date().toISOString().split('T')[0];
       
       // Check if maturity.json exists
-      const maturityData = maturityManager.getMaturityData(item.filePath);
-      const hasMaturityJson = fs.existsSync(maturityFilePath);
+      const hasMaturityJson = maturityManager.hasMaturityFile(item.filePath);
       
-      // Generate AI instructions for creating maturity.json if it doesn't exist
-      const maturityJsonInstructions = !hasMaturityJson ? `
-## IMPORTANT: Create Initial maturity.json
-
-The \`maturity.json\` file does not exist for this spec. Before implementing tests, please:
-
-1. **Analyze the project** to detect the test framework:
-   - Check \`package.json\` for: \`@playwright/test\`, \`@vscode/test-electron\`, \`mocha\`, \`jest\`
-   - Check for Go test files (\`*_test.go\`)
-
-2. **Scan the workspace** for existing test files matching patterns: \`us*.spec.ts\`, \`us*.test.ts\`, \`*_test.go\`
-
-3. **Parse test names** to find scenario IDs like \`US1-AS1\`, \`US2-AS3\`, etc.
-
-4. **Create \`${maturityFilePath}\`** with the following structure:
-
-\`\`\`json
-{
-  "lastUpdated": "${new Date().toISOString()}",
-  "testConfig": {
-    "framework": "<detected-framework>",
-    "runCommand": "<command to run all tests>",
-    "runSingleTestCommand": "<command with {testName}, {filePath}, {testDir} placeholders>",
-    "runScenarioCommand": "<command with {scenarioId} placeholder>",
-    "runUserStoryCommand": "<command with {userStoryPattern} placeholder>"
-  },
-  "userStories": {
-    "US1": {
-      "overall": "none",
-      "scenarios": {
-        "US1-AS1": {
-          "level": "none",
-          "tests": []
-        }
-      }
-    }
-  }
-}
-\`\`\`
-
-**Test Config Examples by Framework**:
-
-| Framework | testConfig Example |
-|-----------|-------------------|
-| Playwright | \`{"framework": "playwright", "runCommand": "npx playwright test", "runSingleTestCommand": "npx playwright test \\"{filePath}\\" --grep \\"{testName}\\"", "runScenarioCommand": "npx playwright test --grep \\"{scenarioId}\\"", "runUserStoryCommand": "npx playwright test --grep \\"{userStoryPattern}\\""}\` |
-| VS Code Extension | \`{"framework": "vscode-extension", "runCommand": "pnpm test", "runSingleTestCommand": "SPECKIT_TEST_GREP=\\"{testName}\\" pnpm test", "runScenarioCommand": "SPECKIT_TEST_GREP=\\"{scenarioId}\\" pnpm test", "runUserStoryCommand": "SPECKIT_TEST_GREP=\\"{userStoryPattern}\\" pnpm test"}\` |
-| Mocha | \`{"framework": "mocha", "runCommand": "npx mocha", "runSingleTestCommand": "npx mocha --grep \\"{testName}\\" \\"{filePath}\\"", "runScenarioCommand": "npx mocha --grep \\"{scenarioId}\\"", "runUserStoryCommand": "npx mocha --grep \\"{userStoryPattern}\\""}\` |
-| Jest | \`{"framework": "jest", "runCommand": "npx jest", "runSingleTestCommand": "npx jest \\"{filePath}\\" -t \\"{testName}\\"", "runScenarioCommand": "npx jest -t \\"{scenarioId}\\"", "runUserStoryCommand": "npx jest -t \\"{userStoryPattern}\\""}\` |
-| Go | \`{"framework": "go", "runCommand": "go test ./...", "runSingleTestCommand": "go test -v -run \\"{testName}\\" ./{testDir}", "runScenarioCommand": "go test -v -run \\"{scenarioId}\\" ./...", "runUserStoryCommand": "go test -v -run \\"{userStoryPattern}\\" ./..."}\` |
-
-For each test found, add an entry to the appropriate scenario's \`tests\` array:
-\`\`\`json
-{
-  "filePath": "test/suite/us1-feature.test.ts",
-  "testName": "US1-AS1: Given condition, When action, Then result",
-  "status": "unknown",
-  "lastRun": null
-}
-\`\`\`
-
-After scanning, update the \`level\` for each scenario:
-- \`"none"\` - No tests found
-- \`"partial"\` - Tests exist but may not fully cover Given/When/Then
-- \`"complete"\` - Tests fully cover the scenario and pass
-
-` : '';
+      // Get spec to access all user stories for maturity.json initialization
+      const spec = treeProvider.findSpecByPath(item.filePath);
+      const userStories = spec?.userStories || [];
       
       if (item.type === 'feature') {
-        const spec = item.data as FeatureSpec;
-        context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-${maturityJsonInstructions}
-## Task: Update integration tests for feature "${spec.displayName}"
-
-- Spec file: ${item.filePath}
-- Test directory: ${testDirectory}
-- Feature: ${featureName}
-`;
+        const featureSpec = item.data as FeatureSpec;
+        context = generateFeatureTemplate({
+          spec: featureSpec,
+          specFilePath: item.filePath,
+          testDirectory,
+          featureName,
+          hasMaturityJson
+        });
       } else if (item.type === 'userStory') {
         const story = item.data as UserStory;
         const storyEndLine = story.endLine || (story.startLine + 20);
-        const scenariosList = story.acceptanceScenarios
-          .map(s => `- **${s.id}** at line ${s.line}`)
-          .join('\n');
-
-        context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-${maturityJsonInstructions}
-## Task: Update integration tests for User Story ${story.number}
-
-**Title**: ${story.title}
-**Priority**: ${story.priority}
-
-### Context
-- Spec file: ${item.filePath}:${story.startLine}-${storyEndLine}
-- Test directory: ${testDirectory}
-- Feature: ${featureName}
-- User Story: US${story.number}
-
-### Acceptance Scenarios (read from spec file):
-${scenariosList}
-
----
-
-## After Implementation: Evaluate Test Maturity
-
-Once you have created/updated tests for this user story, **evaluate maturity** for each acceptance scenario.
-
-### Instructions
-1. Read the user story and acceptance scenarios from: \`${item.filePath}:${story.startLine}-${storyEndLine}\`
-2. For each acceptance scenario, compare the test implementation against Given/When/Then
-3. Update \`${maturityFilePath}\` with maturity levels:
-
-| Level | Value | Criteria |
-|-------|-------|----------|
-| Red | \`none\` | No test exists |
-| Yellow | \`partial\` | Test exists but incomplete coverage |
-| Green | \`complete\` | Test fully covers Given/When/Then and passes |
-
-### Test File Naming Rules (IMPORTANT for linking)
-The SpecKit extension links tests to user stories and acceptance scenarios by matching filenames and test names:
-- **Filename** must contain \`us${story.number}\` (case-insensitive) to link to User Story ${story.number}
-- **Test name** must contain the scenario ID (e.g., \`US${story.number}-AS1\`) for linking to that specific scenario
-- Example patterns: \`us${story.number}-${featureName}.spec.ts\`, \`us${story.number}_${featureName}_test.go\`
-
-### Update maturity.json After Running Tests
-After running tests, update \`${maturityFilePath}\` with the test status:
-
-\`\`\`json
-{
-  "US${story.number}-AS1": {
-    "level": "complete",
-    "tests": [{
-      "filePath": "${testDirectory}/us${story.number}-${featureName}.spec.ts",
-      "testName": "US${story.number}-AS1: Given condition, When action, Then result",
-      "status": "pass",
-      "lastRun": "${today}"
-    }]
-  }
-}
-\`\`\`
-
-The SpecKit extension reads maturity.json to show ✓/✗ icons in the tree view.
-`;
+        context = generateUserStoryTemplate({
+          story,
+          storyEndLine,
+          specFilePath: item.filePath,
+          testDirectory,
+          featureName,
+          maturityFilePath,
+          today,
+          hasMaturityJson
+        });
       } else if (item.type === 'scenario') {
         const scenario = item.data as AcceptanceScenario;
         const story = scenario.userStory;
-        const storyContext = story ? `- User Story: US${story.number} - ${story.title}\n` : '';
         
-        let existingTestSection = '';
+        // Check for existing test
+        let existingTestFilePath: string | undefined;
+        let existingTestLine: number | undefined;
         if (scenario.linkedTests.length > 0) {
           const test = scenario.linkedTests[0];
+          existingTestFilePath = test.filePath;
+          existingTestLine = test.line;
           testFilePath = test.filePath;
           testLine = test.line;
-          existingTestSection = `
-### Existing Test
-- File: ${testFilePath}${testLine ? ':' + testLine : ''}
-`;
-        } else if (story) {
-          existingTestSection = `
-### Test Creation Required
-No test exists for this scenario. Please:
-1. Check existing tests in \`${testDirectory}/\` to understand project conventions
-2. Create a test file with filename that includes: US${story.number}, ${featureName}
-3. Test name/function should reference: ${scenario.id}
-`;
         }
-
-        const namingRulesSection = story ? `
-### Test File Naming Rules (IMPORTANT for linking)
-The SpecKit extension links tests to acceptance scenarios by matching filenames and test names:
-- **Filename** must contain \`us${story.number}\` (case-insensitive) to link to User Story ${story.number}
-- **Test name** must contain \`${scenario.id}\` for the extension to show it under this scenario
-- Example patterns: \`us${story.number}-${featureName}.spec.ts\`, \`us${story.number}_${featureName}_test.go\`
-` : '';
-
-        const storyNumber = story?.number || 1;
-
-        context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-${maturityJsonInstructions}
-## Task: Create/update integration test for ${scenario.id}
-
-### Acceptance Scenario
-- **Given** ${scenario.given}
-- **When** ${scenario.when}
-- **Then** ${scenario.then}
-
-### Context
-- Spec file: ${item.filePath}:${scenario.line}
-- Test directory: ${testDirectory}
-- Feature: ${featureName}
-${storyContext}- Scenario ID: ${scenario.id}
-${existingTestSection}${namingRulesSection}
-### Verification Requirements
-The test must verify:
-- **Given**: ${scenario.given}
-- **When**: ${scenario.when}
-- **Then**: ${scenario.then}
-
----
-
-## After Implementation: Evaluate Test Maturity
-
-Once you have created/updated the test, **carefully evaluate** the test maturity level:
-
-### Step 1: Re-read the Acceptance Scenario
-- **Given**: ${scenario.given}
-- **When**: ${scenario.when}
-- **Then**: ${scenario.then}
-
-### Step 2: Compare with Test Implementation
-Ask yourself:
-- Does the test properly set up the **Given** condition?
-- Does the test correctly perform the **When** action?
-- Does the test verify the **Then** result with appropriate assertions?
-
-### Step 3: Determine Maturity Level
-| Level | Value | Criteria |
-|-------|-------|----------|
-| Red | \`none\` | No test exists for this scenario |
-| Yellow | \`partial\` | Test exists but doesn't fully cover Given/When/Then |
-| Green | \`complete\` | Test fully covers the acceptance scenario and passes |
-
-### Step 4: Run Tests and Update maturity.json
-After implementing the test, **run it** and update maturity.json with the results:
-
-1. Run the test to verify it passes
-2. Update \`${maturityFilePath}\` with the test status
-
-\`\`\`json
-{
-  "lastUpdated": "${today}",
-  "userStories": {
-    "US${storyNumber}": {
-      "overall": "[calculated from scenarios]",
-      "scenarios": {
-        "${scenario.id}": {
-          "level": "[none|partial|complete]",
-          "tests": [
-            {
-              "filePath": "${testDirectory}/us${storyNumber}-${featureName}.spec.ts",
-              "testName": "${scenario.id}: Given ${scenario.given.substring(0, 30)}...",
-              "status": "pass",
-              "lastRun": "${today}"
-            }
-          ]
-        }
-      }
-    }
-  }
-}
-\`\`\`
-
-**Note**: The SpecKit extension reads maturity.json to display:
-- Pass/fail icons (✓/✗) for tests based on the \`status\` field
-- Maturity icons for scenarios based on the \`level\` field
-`;
+        
+        context = generateScenarioTemplate({
+          scenario,
+          story,
+          specFilePath: item.filePath,
+          testDirectory,
+          featureName,
+          maturityFilePath,
+          today,
+          hasMaturityJson,
+          existingTestFilePath,
+          existingTestLine
+        });
       }
 
       // Open spec file
@@ -509,7 +306,29 @@ After implementing the test, **run it** and update maturity.json with the result
       if (!item) return;
       
       const maturityManager = treeProvider.getMaturityManager();
-      const testConfig = maturityManager.getTestConfig(item.filePath);
+      // For test nodes, item.filePath is the test file path, not the spec.md path
+      // Use specFilePath (stored on test nodes) to get the correct testConfig
+      const specPath = (item as any).specFilePath || item.filePath;
+      
+      // Check if maturity.json exists - if not, copy AI instructions to initialize it
+      if (!maturityManager.hasMaturityFile(specPath)) {
+        // Find the spec to get all user stories
+        const spec = treeProvider.findSpecByPath(specPath);
+        const userStories = spec?.userStories || [];
+        const maturityFilePath = path.join(path.dirname(specPath), 'maturity.json');
+        
+        // Use the same template as copyForTest for consistency
+        const context = generateMaturityJsonInstructions({
+          maturityFilePath,
+          userStories
+        });
+        
+        await vscode.env.clipboard.writeText(context);
+        vscode.window.showInformationMessage('No maturity.json found. AI instructions copied to clipboard - paste into Cascade to initialize.');
+        return;
+      }
+      
+      const testConfig = maturityManager.getTestConfig(specPath);
       
       let command: string;
       let displayName: string;
