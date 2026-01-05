@@ -1,0 +1,14 @@
+.vscode/**
+.vscode-test/**
+test/**
+src/**
+**/*.ts
+!dist/**
+.gitignore
+tsconfig.json
+tsconfig.test.json
+pnpm-lock.yaml
+.speckit-test-temp-*
+tests/**
+node_modules/**
+*.vsix

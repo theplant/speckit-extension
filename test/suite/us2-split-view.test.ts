@@ -39,14 +39,17 @@ suite('US2: Split View with Spec and Integration Tests', () => {
       throw new Error('No workspace root found');
     }
     
-    // Create test directories in the actual workspace
-    const specsDir = path.join(workspaceRoot, 'specs');
-    const testsDir = path.join(workspaceRoot, 'tests', 'e2e');
-    fs.mkdirSync(specsDir, { recursive: true });
-    fs.mkdirSync(testsDir, { recursive: true });
+    // Create test directories in the actual workspace (required for command to work)
+    // Use unique names to avoid conflicts with real project files
+    const testId = Date.now();
+    const testSpecsDir = path.join(workspaceRoot, 'specs');
+    const testTestsDir = path.join(workspaceRoot, 'tests', 'e2e');
+    fs.mkdirSync(testSpecsDir, { recursive: true });
+    fs.mkdirSync(testTestsDir, { recursive: true });
     
-    // Create spec file
-    const featureDir = path.join(specsDir, '001-test-feature');
+    // Create spec file with unique name
+    const featureDirName = `999-test-temp-${testId}`;
+    const featureDir = path.join(testSpecsDir, featureDirName);
     fs.mkdirSync(featureDir, { recursive: true });
     
     const specContent = `---
@@ -67,14 +70,15 @@ Description.
     const specPath = path.join(featureDir, 'spec.md');
     fs.writeFileSync(specPath, specContent);
 
-    // Create test file
+    // Create test file with unique name
+    const testFileName = `us1-test-temp-${testId}.spec.ts`;
     const testContent = `import { test } from '@playwright/test';
 
 test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
   // test implementation
 });
 `;
-    const testPath = path.join(testsDir, 'us1-test-feature.spec.ts');
+    const testPath = path.join(testTestsDir, testFileName);
     fs.writeFileSync(testPath, testContent);
 
     // Create and activate the extension
@@ -176,9 +180,9 @@ test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
     assert.notStrictEqual(specEditor?.viewColumn, testEditor?.viewColumn, 
       'Editors should be in different view columns');
     
-    // Cleanup test files
-    fs.rmSync(path.join(workspaceRoot, 'specs'), { recursive: true, force: true });
-    fs.rmSync(path.join(workspaceRoot, 'tests'), { recursive: true, force: true });
+    // Cleanup only the specific test files we created (not entire folders)
+    fs.rmSync(featureDir, { recursive: true, force: true });
+    fs.rmSync(testPath, { force: true });
   });
 
   // @passed: 2025-12-30
