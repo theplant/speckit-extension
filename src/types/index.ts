@@ -42,8 +42,6 @@ export interface IntegrationTest {
   line?: number;
   specAnnotation?: string;
   acceptanceScenario?: AcceptanceScenario;
-  passStatus?: 'pass' | 'fail';  // Read from @passed/@failed comment in test file
-  passDate?: string;  // Date when test was marked as passed/failed (YYYY-MM-DD)
 }
 
 export type SpecTreeItemType = 'feature' | 'userStory' | 'scenario' | 'test';

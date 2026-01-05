@@ -273,82 +273,122 @@ suite('US8: Test Maturity Level Tracking Test Suite', () => {
     assert.strictEqual(MATURITY_COLORS.complete, 'charts.green', 'Complete should use green color');
   });
 
-  test('US8-AS11: Given AI runs test and it passes, Then AI adds @passed comment before test in test file', async () => {
-    // Test pass status is now tracked via comments in test files, not maturity.md
-    // This test verifies the TestLinker can parse @passed comments
+  test('US8-AS11: Given AI runs test and it passes, Then AI updates maturity.json with pass status', async () => {
+    // Test pass status is now tracked in maturity.json, not via comments in test files
+    // This test verifies the MaturityManager can read test status from maturity.json
     
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
-    // Create a test file with @passed comment
-    const testsDir = path.join(tempDir, 'tests');
-    fs.mkdirSync(testsDir, { recursive: true });
+    const specPath = path.join(featureDir, 'spec.md');
+    fs.writeFileSync(specPath, '# Test Feature');
     
-    const testContent = `import { test } from '@playwright/test';
+    // Create maturity.json with test status
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    const maturityContent = JSON.stringify({
+      lastUpdated: new Date().toISOString(),
+      userStories: {
+        US1: {
+          overall: 'partial',
+          scenarios: {
+            'US1-AS1': {
+              level: 'complete',
+              tests: [{
+                filePath: 'tests/us1-feature.spec.ts',
+                testName: 'US1-AS1: Given context, When action, Then result',
+                status: 'pass',
+                lastRun: '2024-12-30'
+              }]
+            },
+            'US1-AS2': {
+              level: 'partial',
+              tests: [{
+                filePath: 'tests/us1-feature.spec.ts',
+                testName: 'US1-AS2: Given another context, When action, Then result',
+                status: 'fail',
+                lastRun: '2024-12-29'
+              }]
+            },
+            'US1-AS3': {
+              level: 'none',
+              tests: [{
+                filePath: 'tests/us1-feature.spec.ts',
+                testName: 'US1-AS3: No status yet',
+                status: 'unknown',
+                lastRun: null
+              }]
+            }
+          }
+        }
+      }
+    });
+    fs.writeFileSync(maturityPath, maturityContent);
 
-// @passed: 2024-12-30
-test('US1-AS1: Given context, When action, Then result', async ({ page }) => {
-  // test implementation
-});
-
-// @failed: 2024-12-29
-test('US1-AS2: Given another context, When action, Then result', async ({ page }) => {
-  // test implementation
-});
-
-test('US1-AS3: No status comment', async ({ page }) => {
-  // test implementation
-});
-`;
-    const testPath = path.join(testsDir, 'us1-feature.spec.ts');
-    fs.writeFileSync(testPath, testContent);
-
-    // Use TestLinker to parse the file
-    const { TestLinker } = await import('../../src/linkers/testLinker');
-    const linker = new TestLinker();
-    const tests = await linker.findTestsForStory(tempDir, 'tests', 'feature', 1);
+    // Read test status from maturity.json
+    const data = maturityManager.getMaturityData(specPath);
+    const us1 = data.userStories.get('US1');
     
-    // Verify pass status was parsed from comments
-    const test1 = tests.find(t => t.testName?.includes('US1-AS1'));
-    const test2 = tests.find(t => t.testName?.includes('US1-AS2'));
-    const test3 = tests.find(t => t.testName?.includes('US1-AS3'));
+    const as1 = us1?.scenarios.get('US1-AS1');
+    const as2 = us1?.scenarios.get('US1-AS2');
+    const as3 = us1?.scenarios.get('US1-AS3');
     
-    assert.strictEqual(test1?.passStatus, 'pass', 'US1-AS1 should be marked as pass');
-    assert.strictEqual(test1?.passDate, '2024-12-30', 'US1-AS1 should have correct date');
-    assert.strictEqual(test2?.passStatus, 'fail', 'US1-AS2 should be marked as fail');
-    assert.strictEqual(test2?.passDate, '2024-12-29', 'US1-AS2 should have correct date');
-    assert.strictEqual(test3?.passStatus, undefined, 'US1-AS3 should have no status');
+    assert.strictEqual(as1?.tests[0]?.status, 'pass', 'US1-AS1 should be marked as pass');
+    assert.strictEqual(as1?.tests[0]?.lastRun, '2024-12-30', 'US1-AS1 should have correct date');
+    assert.strictEqual(as2?.tests[0]?.status, 'fail', 'US1-AS2 should be marked as fail');
+    assert.strictEqual(as2?.tests[0]?.lastRun, '2024-12-29', 'US1-AS2 should have correct date');
+    assert.strictEqual(as3?.tests[0]?.status, 'unknown', 'US1-AS3 should have unknown status');
   });
 
-  test('US8-AS12: Given test has @passed comment in test file, When viewing tree, Then test shows pass icon', async () => {
-    // This test verifies the tree view shows correct icons based on test file comments
-    // The actual icon rendering is tested via the IntegrationTest.passStatus field
+  test('US8-AS12: Given test status in maturity.json is pass, When viewing tree, Then test shows pass icon', async () => {
+    // This test verifies the tree view shows correct icons based on maturity.json status
+    // The actual icon rendering is tested via the test entry's status field
     
     const featureDir = path.join(specsDir, '001-test-feature');
     fs.mkdirSync(featureDir, { recursive: true });
     
-    // Create test file with pass/fail comments
-    const testsDir = path.join(tempDir, 'tests');
-    fs.mkdirSync(testsDir, { recursive: true });
+    const specPath = path.join(featureDir, 'spec.md');
+    fs.writeFileSync(specPath, '# Test Feature');
     
-    const testContent = `// @passed: 2024-12-30
-test('US1-AS1: Test that passed', async () => {});
+    // Create maturity.json with pass/fail status
+    const maturityPath = path.join(featureDir, 'maturity.json');
+    const maturityContent = JSON.stringify({
+      lastUpdated: new Date().toISOString(),
+      userStories: {
+        US1: {
+          overall: 'partial',
+          scenarios: {
+            'US1-AS1': {
+              level: 'complete',
+              tests: [{
+                filePath: 'tests/us1-feature.spec.ts',
+                testName: 'US1-AS1: Test that passed',
+                status: 'pass',
+                lastRun: '2024-12-30'
+              }]
+            },
+            'US1-AS2': {
+              level: 'partial',
+              tests: [{
+                filePath: 'tests/us1-feature.spec.ts',
+                testName: 'US1-AS2: Test that failed',
+                status: 'fail',
+                lastRun: '2024-12-30'
+              }]
+            }
+          }
+        }
+      }
+    });
+    fs.writeFileSync(maturityPath, maturityContent);
 
-// @failed: 2024-12-30
-test('US1-AS2: Test that failed', async () => {});
-`;
-    fs.writeFileSync(path.join(testsDir, 'us1-feature.spec.ts'), testContent);
-
-    // Parse tests
-    const { TestLinker } = await import('../../src/linkers/testLinker');
-    const linker = new TestLinker();
-    const tests = await linker.findTestsForStory(tempDir, 'tests', 'feature', 1);
+    // Read test status from maturity.json
+    const data = maturityManager.getMaturityData(specPath);
+    const us1 = data.userStories.get('US1');
     
-    // Verify the passStatus field is set correctly (tree view uses this for icons)
-    const passedTest = tests.find(t => t.testName?.includes('passed'));
-    const failedTest = tests.find(t => t.testName?.includes('failed'));
+    const passedTest = us1?.scenarios.get('US1-AS1')?.tests[0];
+    const failedTest = us1?.scenarios.get('US1-AS2')?.tests[0];
     
-    assert.strictEqual(passedTest?.passStatus, 'pass', 'Passed test should have pass status');
-    assert.strictEqual(failedTest?.passStatus, 'fail', 'Failed test should have fail status');
+    assert.strictEqual(passedTest?.status, 'pass', 'Passed test should have pass status');
+    assert.strictEqual(failedTest?.status, 'fail', 'Failed test should have fail status');
   });
 });

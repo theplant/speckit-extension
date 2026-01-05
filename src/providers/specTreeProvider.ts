@@ -106,16 +106,20 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
       return spec.userStories.map(story => {
         const hasTests = story.acceptanceScenarios.some(s => s.linkedTests.length > 0);
         
-        // Check if all tests in all scenarios have passed
-        const allTestsPassed = story.acceptanceScenarios.every(s => 
-          s.linkedTests.length > 0 && s.linkedTests.every(t => t.passStatus === 'pass')
-        );
+        // Get maturity data to check test status
+        const maturityData = this.maturityManager.getMaturityData(spec.specFilePath);
+        const storyData = maturityData.userStories.get(`US${story.number}`);
         
-        // If tests exist but not all passed, show yellow regardless of maturity level
-        let maturityLevel = this.maturityManager.getUserStoryMaturity(spec.specFilePath, story.number);
-        if (hasTests && !allTestsPassed) {
-          maturityLevel = 'partial'; // Yellow - tests exist but not all passed
+        // Check if all tests in all scenarios have passed (from maturity.json)
+        let allTestsPassed = false;
+        if (storyData) {
+          allTestsPassed = Array.from(storyData.scenarios.values()).every(scenario => 
+            scenario.tests.length > 0 && scenario.tests.every(t => t.status === 'pass')
+          );
         }
+        
+        // Get maturity level from maturity.json
+        const maturityLevel = this.maturityManager.getUserStoryMaturity(spec.specFilePath, story.number);
         
         const maturityColor = MATURITY_COLORS[maturityLevel];
         const item = new SpecTreeItem(
@@ -140,17 +144,22 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
 
     if (element.type === 'userStory') {
       const story = element.data as UserStory;
+      const spec = this.findSpecByPath(element.filePath);
+      
       return story.acceptanceScenarios.map(scenario => {
         const hasTests = scenario.linkedTests.length > 0;
         
-        // Check if all tests for this scenario have passed
-        const allTestsPassed = hasTests && scenario.linkedTests.every(t => t.passStatus === 'pass');
+        // Get test status from maturity.json
+        const maturityData = spec ? this.maturityManager.getMaturityData(spec.specFilePath) : null;
+        const storyData = maturityData?.userStories.get(`US${story.number}`);
+        const scenarioData = storyData?.scenarios.get(scenario.id);
         
-        // If tests exist but not all passed, show yellow regardless of maturity level
-        let maturityLevel = this.maturityManager.getScenarioMaturity(element.filePath, story.number, scenario.id);
-        if (hasTests && !allTestsPassed) {
-          maturityLevel = 'partial'; // Yellow - tests exist but not all passed
-        }
+        // Check if all tests for this scenario have passed (from maturity.json)
+        const allTestsPassed = scenarioData?.tests.length ? 
+          scenarioData.tests.every(t => t.status === 'pass') : false;
+        
+        // Get maturity level from maturity.json
+        const maturityLevel = this.maturityManager.getScenarioMaturity(element.filePath, story.number, scenario.id);
         
         const maturityColor = MATURITY_COLORS[maturityLevel];
         const item = new SpecTreeItem(
@@ -163,17 +172,32 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
         );
         // Use 'checklist' icon with maturity color for acceptance scenarios
         item.iconPath = new vscode.ThemeIcon('checklist', new vscode.ThemeColor(maturityColor));
-        const passStatus = allTestsPassed ? '✓ All tests passed' : (hasTests ? '⚠ Tests not passed' : 'No tests');
-        item.tooltip = `${MATURITY_TOOLTIPS[maturityLevel]}\n${passStatus}\n\nGiven ${scenario.given}\nWhen ${scenario.when}\nThen ${scenario.then}`;
+        const passStatusText = allTestsPassed ? '✓ All tests passed' : (hasTests ? '⚠ Tests not passed' : 'No tests');
+        item.tooltip = `${MATURITY_TOOLTIPS[maturityLevel]}\n${passStatusText}\n\nGiven ${scenario.given}\nWhen ${scenario.when}\nThen ${scenario.then}`;
         return item;
       });
     }
 
     if (element.type === 'scenario') {
       const scenario = element.data as AcceptanceScenario;
+      const spec = this.findSpecByPath(element.filePath);
+      const story = scenario.userStory;
+      
+      // Get test status from maturity.json
+      const maturityData = spec ? this.maturityManager.getMaturityData(spec.specFilePath) : null;
+      const storyData = story ? maturityData?.userStories.get(`US${story.number}`) : null;
+      const scenarioData = storyData?.scenarios.get(scenario.id);
+      
       return scenario.linkedTests.map(test => {
         // Store parent scenario reference in test for split view navigation
         test.acceptanceScenario = scenario;
+        
+        // Find test status from maturity.json by matching test name
+        const testEntry = scenarioData?.tests.find(t => 
+          t.testName === test.testName || t.filePath.endsWith(test.fileName)
+        );
+        const testStatus = testEntry?.status;
+        const lastRun = testEntry?.lastRun;
         
         const item = new SpecTreeItem(
           test.testName || test.fileName,
@@ -184,16 +208,16 @@ export class SpecTreeProvider implements vscode.TreeDataProvider<SpecTreeItem> {
           test
         );
         
-        // Use pass/fail icon based on @passed/@failed comment in test file
-        if (test.passStatus === 'pass') {
+        // Use pass/fail icon based on status from maturity.json
+        if (testStatus === 'pass') {
           item.iconPath = new vscode.ThemeIcon('pass', new vscode.ThemeColor('charts.green'));
-          item.tooltip = `✓ PASSED on ${test.passDate}\nTest: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}`;
-        } else if (test.passStatus === 'fail') {
+          item.tooltip = `✓ PASSED${lastRun ? ` on ${lastRun}` : ''}\nTest: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}`;
+        } else if (testStatus === 'fail') {
           item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
-          item.tooltip = `✗ FAILED on ${test.passDate}\nTest: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}`;
+          item.tooltip = `✗ FAILED${lastRun ? ` on ${lastRun}` : ''}\nTest: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}`;
         } else {
           item.iconPath = new vscode.ThemeIcon('beaker');
-          item.tooltip = `Test: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}\n(Add // @passed: YYYY-MM-DD before test to mark as passed)`;
+          item.tooltip = `Test: ${test.fileName}${test.testName ? `\n${test.testName}` : ''}\n(Status tracked in maturity.json)`;
         }
         
         // Store spec file path for split view

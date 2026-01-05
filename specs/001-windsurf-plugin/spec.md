@@ -178,9 +178,9 @@ A developer can see the test maturity level for each user story and acceptance s
 2. **Given** a `maturity.json` file exists in the spec directory, **When** the tree view loads, **Then** it reads maturity levels from the file and displays appropriate icons based on the `overall` status and scenario levels
 3. **Given** no `maturity.json` file exists, **When** the tree view loads, **Then** all items show 🔴 (None) maturity level by default
 4. **Given** a user story in the tree, **When** viewing its maturity icon, **Then** the icon reflects the lowest maturity level among its acceptance scenarios
-5. **Given** a test file exists in the tree view (under an acceptance scenario), **When** it contains a `// @passed: YYYY-MM-DD` comment, **Then** the test item shows a green checkmark icon
-6. **Given** a test file exists in the tree view, **When** it contains a `// @failed: YYYY-MM-DD` comment, **Then** the test item shows a red error icon
-7. **Given** a test file exists in the tree view with no pass/fail comment, **When** viewed in the tree, **Then** it shows a default beaker icon
+5. **Given** a test entry in `maturity.json` has `status: "pass"`, **When** viewing the test in the tree, **Then** the test item shows a green checkmark icon
+6. **Given** a test entry in `maturity.json` has `status: "fail"`, **When** viewing the test in the tree, **Then** the test item shows a red error icon
+7. **Given** a test entry in `maturity.json` has `status: "unknown"` or no status, **When** viewed in the tree, **Then** it shows a default beaker icon
 8. **Given** a maturity icon in the tree, **When** hovering over it, **Then** a tooltip shows the maturity level name and criteria
 9. **Given** a `maturity.json` or test file is updated, **When** saved, **Then** the tree view refreshes automatically to reflect the changes
 10. **Given** the tree view, **When** the developer uses the "Expand All" command on a feature or user story, **Then** all child items are recursively expanded to show the full status
@@ -199,9 +199,10 @@ A developer can see the test maturity level for each user story and acceptance s
 - **Test name** must contain the scenario ID (e.g., `US1-AS1`) for linking to that specific scenario.
 - **Annotations**: `@spec: feature/US1-AS1` in comments is also supported for linking.
 
-**Test Pass Status via Comments**:
-- Format: `// @passed: YYYY-MM-DD` or `// @failed: YYYY-MM-DD` directly before the test function.
-- The extension parses these comments to show ✓/✗ icons in the tree view.
+**Test Pass Status**:
+- Status is stored in `maturity.json` under each test entry's `status` field (`pass`, `fail`, or `unknown`).
+- The AI updates this status after running tests.
+- The extension reads `maturity.json` to show ✓/✗ icons in the tree view.
 
 **maturity.json Format**:
 ```json
@@ -270,7 +271,7 @@ A developer can see the test maturity level for each user story and acceptance s
 - **FR-010**: Plugin MUST provide a command to create a new spec directory and spec.md file from a template
 - **FR-011**: Plugin MUST support "Expand All" to recursively expand tree nodes for a feature or user story
 - **FR-012**: Plugin MUST track test maturity levels (none, partial, complete) in a `maturity.json` file
-- **FR-013**: Plugin MUST parse `@passed` and `@failed` comments in test files to display execution status in the tree view
+- **FR-013**: Plugin MUST read test pass/fail status from `maturity.json` to display execution status icons in the tree view
 - **FR-014**: Plugin MUST provide outline view integration for spec file structure (via VS Code's native markdown support)
 - **FR-015**: Plugin MUST persist user preferences (last opened spec, last selected item) in workspace state
 - **FR-016**: Plugin MUST provide a "Run Test" action on test items in the tree view that executes the test in a terminal using the appropriate test framework

@@ -200,10 +200,8 @@ export class TestLinker {
         const testName = testMatch[1];
         
         let specAnnotation: string | undefined;
-        let passStatus: 'pass' | 'fail' | undefined;
-        let passDate: string | undefined;
         
-        // Look at previous lines for annotations (up to 3 lines back, stop at empty line or another test)
+        // Look at previous lines for @spec annotation (up to 3 lines back, stop at empty line or another test)
         for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
           const prevLine = lines[j].trim();
           
@@ -217,19 +215,6 @@ export class TestLinker {
           if (annotationMatch) {
             specAnnotation = annotationMatch[1];
           }
-          
-          // Check for @passed or @failed annotation
-          const passedMatch = prevLine.match(/@passed:\s*(\d{4}-\d{2}-\d{2})/);
-          if (passedMatch) {
-            passStatus = 'pass';
-            passDate = passedMatch[1];
-          }
-          
-          const failedMatch = prevLine.match(/@failed:\s*(\d{4}-\d{2}-\d{2})/);
-          if (failedMatch) {
-            passStatus = 'fail';
-            passDate = failedMatch[1];
-          }
         }
 
         tests.push({
@@ -237,9 +222,7 @@ export class TestLinker {
           fileName: path.basename(filePath),
           testName,
           line: i + 1,
-          specAnnotation,
-          passStatus,
-          passDate
+          specAnnotation
         });
       }
     }

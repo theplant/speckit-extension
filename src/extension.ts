@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { SpecTreeProvider } from './providers/specTreeProvider';
 import { EditorController } from './controllers/editorController';
 import { StateManager } from './state/stateManager';
@@ -221,39 +222,11 @@ export function activate(context: vscode.ExtensionContext) {
       if (!item) return;
 
       const metadataManager = treeProvider.getMetadataManager();
+      const maturityManager = treeProvider.getMaturityManager();
       const workspaceRoot = treeProvider.getWorkspaceRoot();
       
-      // Check if test directory is configured for this spec
-      let testDirectory = metadataManager.getTestDirectory(item.filePath);
-      
-      if (!testDirectory) {
-        // First time - prompt user to select test directory
-        const selectedFolder = await vscode.window.showOpenDialog({
-          canSelectFiles: false,
-          canSelectFolders: true,
-          canSelectMany: false,
-          openLabel: 'Select Test Directory',
-          title: 'Select the directory where integration tests are located',
-          defaultUri: vscode.Uri.file(workspaceRoot)
-        });
-        
-        if (!selectedFolder || selectedFolder.length === 0) {
-          vscode.window.showWarningMessage('No test directory selected. Please select a test directory to continue.');
-          return;
-        }
-        
-        // Convert to relative path from workspace root
-        const absolutePath = selectedFolder[0].fsPath;
-        testDirectory = path.relative(workspaceRoot, absolutePath);
-        
-        // Save to spec.md metadata
-        metadataManager.setTestDirectory(item.filePath, testDirectory);
-        
-        // Refresh tree to pick up new test directory
-        await treeProvider.refresh();
-        
-        vscode.window.showInformationMessage(`Test directory set to: ${testDirectory}`);
-      }
+      // Get test directory from spec.md metadata (optional, for context)
+      const testDirectory = metadataManager.getTestDirectory(item.filePath) || 'test';
 
       let context = '';
       let testFilePath: string | undefined;
@@ -265,10 +238,59 @@ export function activate(context: vscode.ExtensionContext) {
       const maturityFilePath = path.join(specDir, 'maturity.json');
       const today = new Date().toISOString().split('T')[0];
       
+      // Check if maturity.json exists
+      const maturityData = maturityManager.getMaturityData(item.filePath);
+      const hasMaturityJson = fs.existsSync(maturityFilePath);
+      
+      // Generate AI instructions for creating maturity.json if it doesn't exist
+      const maturityJsonInstructions = !hasMaturityJson ? `
+## IMPORTANT: Create Initial maturity.json
+
+The \`maturity.json\` file does not exist for this spec. Before implementing tests, please:
+
+1. **Scan the workspace** for existing test files that might be related to this spec
+2. **Look for test files** matching patterns: \`us*.spec.ts\`, \`us*.test.ts\`, \`*_test.go\`
+3. **Parse test names** to find scenario IDs like \`US1-AS1\`, \`US2-AS3\`, etc.
+4. **Create \`${maturityFilePath}\`** with the following structure:
+
+\`\`\`json
+{
+  "lastUpdated": "${new Date().toISOString()}",
+  "userStories": {
+    "US1": {
+      "overall": "none",
+      "scenarios": {
+        "US1-AS1": {
+          "level": "none",
+          "tests": []
+        }
+      }
+    }
+  }
+}
+\`\`\`
+
+For each test found, add an entry to the appropriate scenario's \`tests\` array:
+\`\`\`json
+{
+  "filePath": "test/suite/us1-feature.test.ts",
+  "testName": "US1-AS1: Given condition, When action, Then result",
+  "status": "unknown",
+  "lastRun": null
+}
+\`\`\`
+
+After scanning, update the \`level\` for each scenario:
+- \`"none"\` - No tests found
+- \`"partial"\` - Tests exist but may not fully cover Given/When/Then
+- \`"complete"\` - Tests fully cover the scenario and pass
+
+` : '';
+      
       if (item.type === 'feature') {
         const spec = item.data as FeatureSpec;
         context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-
+${maturityJsonInstructions}
 ## Task: Update integration tests for feature "${spec.displayName}"
 
 - Spec file: ${item.filePath}
@@ -283,7 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
           .join('\n');
 
         context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-
+${maturityJsonInstructions}
 ## Task: Update integration tests for User Story ${story.number}
 
 **Title**: ${story.title}
@@ -321,17 +343,24 @@ The SpecKit extension links tests to user stories and acceptance scenarios by ma
 - **Test name** must contain the scenario ID (e.g., \`US${story.number}-AS1\`) for linking to that specific scenario
 - Example patterns: \`us${story.number}-${featureName}.spec.ts\`, \`us${story.number}_${featureName}_test.go\`
 
-### Mark Test Pass Status in Test Files
-After running tests, add a comment **directly before each test function** to record pass/fail:
+### Update maturity.json After Running Tests
+After running tests, update \`${maturityFilePath}\` with the test status:
 
-\`\`\`typescript
-// @passed: ${today}
-test('US${story.number}-AS1: Given condition, When action, Then result', async () => {
-  // test implementation
-});
+\`\`\`json
+{
+  "US${story.number}-AS1": {
+    "level": "complete",
+    "tests": [{
+      "filePath": "${testDirectory}/us${story.number}-${featureName}.spec.ts",
+      "testName": "US${story.number}-AS1: Given condition, When action, Then result",
+      "status": "pass",
+      "lastRun": "${today}"
+    }]
+  }
+}
 \`\`\`
 
-The SpecKit extension reads these comments to show ✓/✗ icons in the tree view.
+The SpecKit extension reads maturity.json to show ✓/✗ icons in the tree view.
 `;
       } else if (item.type === 'scenario') {
         const scenario = item.data as AcceptanceScenario;
@@ -368,7 +397,7 @@ The SpecKit extension links tests to acceptance scenarios by matching filenames 
         const storyNumber = story?.number || 1;
 
         context = `Find an appropriate testing workflow in .windsurf/workflows/ and use it to create/update integration tests.
-
+${maturityJsonInstructions}
 ## Task: Create/update integration test for ${scenario.id}
 
 ### Acceptance Scenario
@@ -412,33 +441,11 @@ Ask yourself:
 | Yellow | \`partial\` | Test exists but doesn't fully cover Given/When/Then |
 | Green | \`complete\` | Test fully covers the acceptance scenario and passes |
 
-### Step 4: Run Tests and Record Results
-After implementing the test, **run it** and record the pass/fail status:
+### Step 4: Run Tests and Update maturity.json
+After implementing the test, **run it** and update maturity.json with the results:
 
 1. Run the test to verify it passes
-2. Add a \`@passed\` or \`@failed\` comment **directly before the test function**
-3. Update maturity.json with the maturity level
-
-### Step 5: Mark Test Pass Status in Test File
-Add a comment before the test function to record pass/fail status:
-
-\`\`\`typescript
-// @passed: ${today}
-test('${scenario.id}: Given ${scenario.given.substring(0, 30)}...', async () => {
-  // test implementation
-});
-\`\`\`
-
-Or if the test failed:
-\`\`\`typescript
-// @failed: ${today}
-test('${scenario.id}: ...', async () => {
-  // test implementation
-});
-\`\`\`
-
-### Step 6: Update maturity.json
-Update \`${maturityFilePath}\` with the maturity level (test pass status is tracked in test file comments):
+2. Update \`${maturityFilePath}\` with the test status
 
 \`\`\`json
 {
@@ -464,9 +471,9 @@ Update \`${maturityFilePath}\` with the maturity level (test pass status is trac
 }
 \`\`\`
 
-**Note**: The SpecKit extension will display:
-- Pass/fail icons (✓/✗) for tests based on \`@passed\`/\`@failed\` comments in test files
-- Maturity icons for scenarios based on maturity.json
+**Note**: The SpecKit extension reads maturity.json to display:
+- Pass/fail icons (✓/✗) for tests based on the \`status\` field
+- Maturity icons for scenarios based on the \`level\` field
 `;
       }
 
