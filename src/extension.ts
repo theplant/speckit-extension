@@ -218,6 +218,33 @@ export function activate(context: vscode.ExtensionContext) {
       const spec = treeProvider.findSpecByPath(item.filePath);
       const userStories = spec?.userStories || [];
       
+      // If maturity.json doesn't exist, show QuickPick for better UX
+      let includeMaturityInstructions = !hasMaturityJson;
+      if (!hasMaturityJson) {
+        const items: vscode.QuickPickItem[] = [
+          {
+            label: '$(sparkle) Initialize maturity.json',
+            description: 'Recommended for first-time setup',
+            detail: 'Copies AI instructions to create maturity.json with test tracking'
+          },
+          {
+            label: '$(copy) Copy context only',
+            description: 'Skip initialization',
+            detail: 'Copies test context without maturity.json setup instructions'
+          }
+        ];
+        
+        const selection = await vscode.window.showQuickPick(items, {
+          title: 'maturity.json not found',
+          placeHolder: 'How would you like to proceed?'
+        });
+        
+        if (!selection) {
+          return; // User cancelled
+        }
+        includeMaturityInstructions = selection.label.includes('Initialize');
+      }
+      
       if (item.type === 'feature') {
         const featureSpec = item.data as FeatureSpec;
         context = generateFeatureTemplate({
@@ -225,7 +252,7 @@ export function activate(context: vscode.ExtensionContext) {
           specFilePath: item.filePath,
           testDirectory,
           featureName,
-          hasMaturityJson
+          hasMaturityJson: !includeMaturityInstructions
         });
       } else if (item.type === 'userStory') {
         const story = item.data as UserStory;
@@ -238,7 +265,7 @@ export function activate(context: vscode.ExtensionContext) {
           featureName,
           maturityFilePath,
           today,
-          hasMaturityJson
+          hasMaturityJson: !includeMaturityInstructions
         });
       } else if (item.type === 'scenario') {
         const scenario = item.data as AcceptanceScenario;
@@ -263,7 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
           featureName,
           maturityFilePath,
           today,
-          hasMaturityJson,
+          hasMaturityJson: !includeMaturityInstructions,
           existingTestFilePath,
           existingTestLine
         });
@@ -310,21 +337,39 @@ export function activate(context: vscode.ExtensionContext) {
       // Use specFilePath (stored on test nodes) to get the correct testConfig
       const specPath = (item as any).specFilePath || item.filePath;
       
-      // Check if maturity.json exists - if not, copy AI instructions to initialize it
+      // Check if maturity.json exists - if not, show QuickPick for better UX
       if (!maturityManager.hasMaturityFile(specPath)) {
         // Find the spec to get all user stories
         const spec = treeProvider.findSpecByPath(specPath);
         const userStories = spec?.userStories || [];
         const maturityFilePath = path.join(path.dirname(specPath), 'maturity.json');
         
-        // Use the same template as copyForTest for consistency
-        const context = generateMaturityJsonInstructions({
-          maturityFilePath,
-          userStories
+        // Show QuickPick for first-time users
+        const items: vscode.QuickPickItem[] = [
+          {
+            label: '$(sparkle) Copy AI Instructions',
+            description: 'Initialize maturity.json',
+            detail: 'Copies instructions to clipboard - paste into Cascade to create the file'
+          },
+          {
+            label: '$(close) Cancel',
+            description: 'Do nothing'
+          }
+        ];
+        
+        const selection = await vscode.window.showQuickPick(items, {
+          title: 'maturity.json required for running tests',
+          placeHolder: 'This file maps tests to acceptance scenarios and tracks results'
         });
         
-        await vscode.env.clipboard.writeText(context);
-        vscode.window.showInformationMessage('No maturity.json found. AI instructions copied to clipboard - paste into Cascade to initialize.');
+        if (selection?.label.includes('Copy AI Instructions')) {
+          const context = generateMaturityJsonInstructions({
+            maturityFilePath,
+            userStories
+          });
+          await vscode.env.clipboard.writeText(context);
+          vscode.window.showInformationMessage('$(check) AI instructions copied! Paste into Cascade to initialize maturity.json.');
+        }
         return;
       }
       
