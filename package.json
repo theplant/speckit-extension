@@ -20,17 +20,8 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "speckit-explorer",
-          "title": "SpecKit",
-          "icon": "media/speckit-icon.svg"
-        }
-      ]
-    },
     "views": {
-      "speckit-explorer": [
+      "explorer": [
         {
           "id": "speckit.specsView",
           "name": "Specs",
