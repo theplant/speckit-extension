@@ -20,8 +20,24 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "speckit-explorer",
+          "title": "SpecKit",
+          "icon": "media/speckit-icon.svg"
+        }
+      ]
+    },
     "views": {
       "explorer": [
+        {
+          "id": "speckit.specsViewExplorer",
+          "name": "Specs",
+          "icon": "media/speckit-icon.svg"
+        }
+      ],
+      "speckit-explorer": [
         {
           "id": "speckit.specsView",
           "name": "Specs",
@@ -86,29 +102,29 @@
       "view/title": [
         {
           "command": "speckit.refreshSpecs",
-          "when": "view == speckit.specsView",
+          "when": "view == speckit.specsView || view == speckit.specsViewExplorer",
           "group": "navigation"
         },
         {
           "command": "speckit.createSpec",
-          "when": "view == speckit.specsView",
+          "when": "view == speckit.specsView || view == speckit.specsViewExplorer",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "speckit.copyForTest",
-          "when": "view == speckit.specsView && viewItem != feature",
+          "when": "(view == speckit.specsView || view == speckit.specsViewExplorer) && viewItem != feature",
           "group": "inline@1"
         },
         {
           "command": "speckit.expandAll",
-          "when": "view == speckit.specsView && (viewItem == feature || viewItem == userStory)",
+          "when": "(view == speckit.specsView || view == speckit.specsViewExplorer) && (viewItem == feature || viewItem == userStory)",
           "group": "inline@2"
         },
         {
           "command": "speckit.runTest",
-          "when": "view == speckit.specsView && (viewItem == test || viewItem == scenario || viewItem == userStory)",
+          "when": "(view == speckit.specsView || view == speckit.specsViewExplorer) && (viewItem == test || viewItem == scenario || viewItem == userStory)",
           "group": "inline@3"
         }
       ]
