@@ -157,20 +157,20 @@
     "package": "vsce package",
     "pretest": "pnpm compile && pnpm compile:test",
     "test": "node ./dist/test/test/runTest.js",
-    "test:unit": "pnpm compile:test && mocha --ui tdd 'dist/test/test/**/*.test.js'",
+    "test:unit": "pnpm compile:test && mocha --ui tdd 'dist/test/test/unit/**/*.test.js'",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^20.10.0",
-    "@types/vscode": "^1.85.0",
-    "@vscode/test-electron": "^2.3.8",
-    "@vscode/vsce": "^3.7.1",
-    "esbuild": "^0.25.0",
-    "glob": "^13.0.0",
-    "mocha": "^11.7.5",
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.137.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.25.12",
+    "glob": "^13.0.6",
+    "mocha": "^12.0.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.9.3"
   }
 }
